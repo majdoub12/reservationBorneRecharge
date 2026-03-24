@@ -10,3 +10,10 @@ export const foreignAuth = (data) => axios.post(`${API_URL}/auth/foreign`, data)
 
 // OTP verification
 export const verifyOTP = (data) => axios.post(`${API_URL}/auth/verify-otp`, data);
+
+
+
+
+
+
+
