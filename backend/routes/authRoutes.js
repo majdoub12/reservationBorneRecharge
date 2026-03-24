@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // Tunisian car — identify vehicle + return contacts
 router.post('/tunisian', authController.tunisianAuth);
