@@ -1,0 +1,25 @@
+{
+  "vehicles": [
+    {
+      "id": 1,
+      "immatricul": "123TUN456",
+      "vin": "VIN123456789"
+    }
+  ],
+  "emails": [
+    {
+      "id": 1,
+      "vehicle_id": 1,
+      "address": "majdoubwidef@gmail.com",
+      "is_active": true
+    }
+  ],
+  "telephones": [
+    {
+      "id": 1,
+      "vehicle_id": 1,
+      "number": "+21621555158",
+      "is_active": true
+    }
+  ]
+}

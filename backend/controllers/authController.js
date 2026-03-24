@@ -152,7 +152,7 @@ exports.foreignAuth = async (req, res) => {
 
     // 2. Send back-office validation email
     const approveUrl = `http://localhost:5000/api/auth/foreign/approve?matricule=${encodeURIComponent(matricule)}&vin=${encodeURIComponent(vin)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`;
-    const rejectUrl  = `http://localhost:5000/api/auth/foreign/reject?matricule=${encodeURIComponent(matricule)}`;
+    const rejectUrl = `http://localhost:5000/api/auth/foreign/reject?matricule=${encodeURIComponent(matricule)}`;
 
     await sendEmail(
       process.env.EMAIL_USER,
@@ -315,5 +315,82 @@ exports.verifyForeignOTP = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+exports.addContact = async (req, res) => {
+  const { vehicleId, contact } = req.body;
+
+  if (!vehicleId || !contact?.type || !contact?.value) {
+    return res.status(400).json({ message: 'Invalid data' });
+  }
+
+  try {
+    if (contact.type === 'email') {
+      await pool.query(
+        'INSERT INTO emails(vehicle_id, address) VALUES($1, $2)',
+        [vehicleId, contact.value]
+      );
+    } else {
+      await pool.query(
+        'INSERT INTO telephones(vehicle_id, number) VALUES($1, $2)',
+        [vehicleId, contact.value]
+      );
+    }
+
+    res.json({ message: 'Contact added successfully' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error adding contact' });
+  }
+};
+
+
+exports.deleteContact = async (req, res) => {
+  const { vehicleId, contact } = req.body;
+
+  if (!vehicleId || !contact?.type || !contact?.value) {
+    return res.status(400).json({ message: 'Missing identifiers' });
+  }
+
+  try {
+    if (contact.type === 'email') {
+      await pool.query(
+        'DELETE FROM emails WHERE vehicle_id=$1 AND address=$2',
+        [vehicleId, contact.value]
+      );
+    } else {
+      await pool.query(
+        'DELETE FROM telephones WHERE vehicle_id=$1 AND number=$2',
+        [vehicleId, contact.value]
+      );
+    }
+
+    res.json({ message: 'Contact deleted' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error deleting contact' });
+  }
+};
+
+exports.getContacts = async (req, res) => {
+  const { vehicleId } = req.params;
+  if (!vehicleId) return res.status(400).json({ message: 'Vehicle ID required' });
+
+  try {
+    const emailResult = await pool.query('SELECT id, address AS value FROM emails WHERE vehicle_id=$1', [vehicleId]);
+    const phoneResult = await pool.query('SELECT id, number AS value FROM telephones WHERE vehicle_id=$1', [vehicleId]);
+
+    const contacts = [
+      ...emailResult.rows.map(r => ({ ...r, type: 'email' })),
+      ...phoneResult.rows.map(r => ({ ...r, type: 'phone' }))
+    ];
+    res.json({ contacts });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching contacts' });
   }
 };

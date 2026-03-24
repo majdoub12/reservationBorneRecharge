@@ -13,10 +13,15 @@ router.post('/foreign', authController.foreignAuth);
 
 // Back-office approve/reject (called via email links)
 router.get('/foreign/approve', authController.foreignApprove);
-router.get('/foreign/reject',  authController.foreignReject);
+router.get('/foreign/reject', authController.foreignReject);
 
 // OTP verification
-router.post('/verify-otp',         authController.verifyOTP);
+router.post('/verify-otp', authController.verifyOTP);
 router.post('/verify-foreign-otp', authController.verifyForeignOTP);
+
+// Contact Management (Unprotected for identification flow)
+router.get('/contacts/:vehicleId', authController.getContacts);
+router.post('/add-contact', authController.addContact);
+router.post('/delete-contact', authController.deleteContact);
 
 module.exports = router;
