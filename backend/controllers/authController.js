@@ -3,9 +3,28 @@ const { generateOTP } = require('../utils/otpGenerator');
 const { generateToken } = require('../utils/jwt');
 const { sendEmail } = require('../utils/emailService');
 
+//for the sms otp
+const twilio = require('twilio');
+
+console.log("TWILIO NUMBER:", process.env.TWILIO_WHATSAPP_NUMBER);
+
+// Lazy-initialize Twilio client to avoid crash if env vars are missing at startup
+function getTwilioClient() {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (!accountSid || !authToken) {
+    throw new Error('Missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN in .env');
+  }
+  return twilio(accountSid, authToken);
+}
+
 // ─── Tunisian Car Auth ────────────────────────────────────────────────────────
 exports.tunisianAuth = async (req, res) => {
   const { immatricul, vin } = req.body;
+
+  if (!immatricul || !vin) {
+    return res.status(400).json({ message: 'License plate and VIN are required' });
+  }
 
   try {
     const vehicleResult = await pool.query(
@@ -50,6 +69,10 @@ exports.tunisianAuth = async (req, res) => {
 exports.sendOTP = async (req, res) => {
   const { vehicleId, contact } = req.body;
 
+  if (!vehicleId || !contact || !contact.type || !contact.value) {
+    return res.status(400).json({ message: 'vehicleId and contact are required' });
+  }
+
   try {
     // Expire old unused OTPs
     await pool.query(
@@ -91,10 +114,43 @@ exports.sendOTP = async (req, res) => {
           </div>
         `
       );
-    } else {
-      // TODO: plug in SMS service (Twilio, etc.)
-      console.log(`[SMS] OTP ${otpCode} → ${contact.value}`);
-    }
+    } else if (contact.type === 'phone') {
+            try {
+              const twilioClient = getTwilioClient();
+
+              const twilioWhatsappNumber = process.env.TWILIO_WHATSAPP_NUMBER;
+
+              // 🔥 SAFETY CHECK
+              if (!twilioWhatsappNumber) {
+                console.error("❌ TWILIO_WHATSAPP_NUMBER is undefined. Check your .env");
+                return res.status(500).json({ message: 'WhatsApp config error' });
+              }
+
+              const fromNumber = twilioWhatsappNumber.startsWith('whatsapp:')
+                ? twilioWhatsappNumber
+                : `whatsapp:${twilioWhatsappNumber}`;
+
+              const toNumber = contact.value.startsWith('whatsapp:')
+                ? contact.value
+                : `whatsapp:${contact.value}`;
+
+              const message = await twilioClient.messages.create({
+                from: fromNumber,
+                to: toNumber,
+                body: `Your IDD verification code is: ${otpCode}. It expires in 5 minutes.`
+              });
+
+              console.log("✅ MESSAGE SID:", message.sid);
+
+            } catch (err) {
+              console.error("FULL TWILIO ERROR:", err.message);
+              console.error("CODE:", err.code);
+              console.error("MORE INFO:", err.moreInfo);
+
+              return res.status(500).json({ message: 'Failed to send OTP via WhatsApp' });
+            }
+          }
+    
 
     res.json({ message: 'OTP sent successfully' });
 
@@ -150,3 +206,5 @@ exports.verifyOTP = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
