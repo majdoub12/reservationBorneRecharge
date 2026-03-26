@@ -31,7 +31,14 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        <Route path="/manage-contacts" element={<ManageContacts />} />
+        <Route
+          path="/manage-contacts"
+          element={
+            <ProtectedRoute redirectTo="/tunisian-auth" allowWithStateKey="vehicleId">
+              <ManageContacts />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

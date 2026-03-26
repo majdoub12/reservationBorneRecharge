@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
+const ocrController = require('../controllers/ocrController');
 
 // Tunisian car — identify vehicle + return contacts
 router.post('/tunisian', authController.tunisianAuth);
@@ -26,4 +27,5 @@ router.get('/contacts/:vehicleId', authController.getContacts);
 router.post('/add-contact', authController.addContact);
 router.post('/delete-contact', authController.deleteContact);
 
+router.post('/ocr', ocrController.handleOCR);
 module.exports = router;

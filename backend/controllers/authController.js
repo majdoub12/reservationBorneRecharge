@@ -5,9 +5,7 @@ const { sendEmail } = require('../utils/emailService');
 const { queryExternalSystem } = require('../utils/mockExternalSystem');
 const twilio = require('twilio');
 
-// In-memory status store for foreign request lifecycle (pending/approved/rejected)
-// This avoids schema changes but could be replaced by DB status column in production.
-const foreignRequestStatus = {};
+let foreignRequestTableReady = false;
 
 // ─── Twilio lazy init ─────────────────────────────────────────────────────────
 function getTwilioClient() {
@@ -105,6 +103,87 @@ async function ensureForeignVehicleContacts(vehicleId, email, phone) {
   }
 }
 
+async function ensureForeignRequestsTable() {
+  if (foreignRequestTableReady) {
+    return;
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS foreign_requests (
+      id SERIAL PRIMARY KEY,
+      matricule VARCHAR(255) NOT NULL,
+      vin VARCHAR(255) NOT NULL,
+      email VARCHAR(255),
+      phone VARCHAR(255),
+      vehicle_id INTEGER REFERENCES vehicles(id) ON DELETE SET NULL,
+      status VARCHAR(32) NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT foreign_requests_status_check CHECK (status IN ('pending', 'approved', 'rejected')),
+      CONSTRAINT foreign_requests_matricule_vin_unique UNIQUE (matricule, vin)
+    )
+  `);
+
+  foreignRequestTableReady = true;
+}
+
+async function upsertForeignRequest({ matricule, vin, email, phone, vehicleId = null, status }) {
+  await ensureForeignRequestsTable();
+
+  await pool.query(
+    `
+      INSERT INTO foreign_requests (matricule, vin, email, phone, vehicle_id, status, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      ON CONFLICT (matricule, vin)
+      DO UPDATE SET
+        email = EXCLUDED.email,
+        phone = EXCLUDED.phone,
+        vehicle_id = COALESCE(EXCLUDED.vehicle_id, foreign_requests.vehicle_id),
+        status = EXCLUDED.status,
+        updated_at = NOW()
+    `,
+    [matricule, vin, email || null, phone || null, vehicleId, status]
+  );
+}
+
+async function getPersistentForeignStatus(matricule, vin) {
+  await ensureForeignRequestsTable();
+
+  const requestResult = await pool.query(
+    'SELECT status, vehicle_id FROM foreign_requests WHERE matricule=$1 AND vin=$2 LIMIT 1',
+    [matricule, vin]
+  );
+
+  if (requestResult.rows.length > 0) {
+    return requestResult.rows[0].status;
+  }
+
+  // Backward-compatible fallback for rows created before the table existed.
+  const vehicleResult = await pool.query(
+    'SELECT id, is_foreign, is_temporary FROM vehicles WHERE UPPER(immatricul)=$1 OR UPPER(vin)=$2 LIMIT 1',
+    [matricule, vin]
+  );
+
+  if (vehicleResult.rows.length === 0) {
+    return 'unknown';
+  }
+
+  const vehicle = vehicleResult.rows[0];
+  if (!vehicle.is_foreign) {
+    return 'unknown';
+  }
+
+  const derivedStatus = vehicle.is_temporary ? 'pending' : 'approved';
+  await upsertForeignRequest({
+    matricule,
+    vin,
+    vehicleId: vehicle.id,
+    status: derivedStatus
+  });
+
+  return derivedStatus;
+}
+
 // ─── Tunisian Car Auth ────────────────────────────────────────────────────────
 exports.tunisianAuth = async (req, res) => {
   const { immatricul, vin } = req.body;
@@ -187,6 +266,8 @@ exports.foreignAuth = async (req, res) => {
   }
 
   try {
+    await ensureForeignRequestsTable();
+
     // 1. Query mock external system
     const car = queryExternalSystem(matricule, vin);
 
@@ -219,6 +300,15 @@ exports.foreignAuth = async (req, res) => {
         ? 'This foreign vehicle has already been submitted and is still waiting for back-office approval.'
         : 'This foreign vehicle is already approved. You can proceed directly to OTP verification.';
 
+      await upsertForeignRequest({
+        matricule: normalizedMatricule,
+        vin: normalizedVin,
+        email,
+        phone,
+        vehicleId: existingVehicle.id,
+        status: existingVehicle.is_temporary ? 'pending' : 'approved'
+      });
+
       return res.json({
         message: existingMessage,
         vehicleId: existingVehicle.id,
@@ -238,8 +328,14 @@ exports.foreignAuth = async (req, res) => {
 
     await ensureForeignVehicleContacts(tempVehicle.id, email, phone);
 
-    const requestKey = `${normalizedMatricule}|${normalizedVin}`;
-    foreignRequestStatus[requestKey] = 'pending';
+    await upsertForeignRequest({
+      matricule: normalizedMatricule,
+      vin: normalizedVin,
+      email,
+      phone,
+      vehicleId: tempVehicle.id,
+      status: 'pending'
+    });
 
     // 4. Ask back-office to validate the foreign vehicle
     const approveUrl = `http://localhost:5000/api/auth/foreign/approve?matricule=${encodeURIComponent(matricule)}&vin=${encodeURIComponent(vin)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`;
@@ -294,11 +390,10 @@ exports.foreignApprove = async (req, res) => {
   }
 
   try {
+    await ensureForeignRequestsTable();
+
     const normalizedMatricule = matricule.trim().toUpperCase();
     const normalizedVin = vin.trim().toUpperCase();
-
-    const requestKey = `${normalizedMatricule}|${normalizedVin}`;
-    foreignRequestStatus[requestKey] = 'approved';
 
     // Ensure the vehicle exists or create it in the vehicles table
     let vehicleResult = await pool.query(
@@ -322,6 +417,14 @@ exports.foreignApprove = async (req, res) => {
     }
 
     await ensureForeignVehicleContacts(vehicle.id, email, phone);
+    await upsertForeignRequest({
+      matricule: normalizedMatricule,
+      vin: normalizedVin,
+      email,
+      phone,
+      vehicleId: vehicle.id,
+      status: 'approved'
+    });
 
     // Clean up old OTPs for this vehicle
     await pool.query(
@@ -364,13 +467,15 @@ exports.foreignReject = async (req, res) => {
 
   const normalizedMatricule = matricule?.trim().toUpperCase();
   const normalizedVin = vin?.trim().toUpperCase();
-  const requestKey = `${normalizedMatricule || ''}|${normalizedVin || ''}`;
 
-  if (requestKey in foreignRequestStatus) {
-    foreignRequestStatus[requestKey] = 'rejected';
-  }
+  if (normalizedMatricule && normalizedVin) {
+    await ensureForeignRequestsTable();
+    await upsertForeignRequest({
+      matricule: normalizedMatricule,
+      vin: normalizedVin,
+      status: 'rejected'
+    });
 
-  if (normalizedMatricule || normalizedVin) {
     const vehicleResult = await pool.query(
       'SELECT * FROM vehicles WHERE UPPER(immatricul) = $1 OR UPPER(vin) = $2 LIMIT 1',
       [normalizedMatricule, normalizedVin]
@@ -437,8 +542,9 @@ exports.foreignStatus = async (req, res) => {
     return res.status(400).json({ message: 'Missing matricule or vin' });
   }
 
-  const requestKey = `${matricule.trim().toUpperCase()}|${vin.trim().toUpperCase()}`;
-  const status = foreignRequestStatus[requestKey] || 'unknown';
+  const normalizedMatricule = matricule.trim().toUpperCase();
+  const normalizedVin = vin.trim().toUpperCase();
+  const status = await getPersistentForeignStatus(normalizedMatricule, normalizedVin);
 
   res.json({ status });
 };

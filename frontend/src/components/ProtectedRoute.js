@@ -1,17 +1,20 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, redirectTo = '/', allowWithStateKey = null }) => {
+  const location = useLocation();
   const token = localStorage.getItem('token');
-  console.log('ProtectedRoute: checking token...', token ? 'Found' : 'Missing (Redirecting)');
+  const hasAllowedState = allowWithStateKey && location.state?.[allowWithStateKey];
 
-  if (!token) {
-    // Redirect to home or identification if no token
-    return <Navigate to="/" replace />;
+  console.log(
+    'ProtectedRoute: checking access...',
+    token ? 'Authenticated' : hasAllowedState ? 'Allowed by route state' : 'Denied'
+  );
+
+  if (!token && !hasAllowedState) {
+    return <Navigate to={redirectTo} replace />;
   }
 
-  // Optional: Add logic to check if token is expired (requires decoding on frontend)
-  
   return children;
 };
 
