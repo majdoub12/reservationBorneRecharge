@@ -5,6 +5,10 @@ const { sendEmail } = require('../utils/emailService');
 const { queryExternalSystem } = require('../utils/mockExternalSystem');
 const twilio = require('twilio');
 
+// In-memory status store for foreign request lifecycle (pending/approved/rejected)
+// This avoids schema changes but could be replaced by DB status column in production.
+const foreignRequestStatus = {};
+
 // ─── Twilio lazy init ─────────────────────────────────────────────────────────
 function getTwilioClient() {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -150,9 +154,13 @@ exports.foreignAuth = async (req, res) => {
       return res.status(404).json({ message: 'Vehicle not found in external system' });
     }
 
+    // Mark request pending in status store
+    const requestKey = `${matricule.trim().toUpperCase()}|${vin.trim().toUpperCase()}`;
+    foreignRequestStatus[requestKey] = 'pending';
+
     // 2. Send back-office validation email
     const approveUrl = `http://localhost:5000/api/auth/foreign/approve?matricule=${encodeURIComponent(matricule)}&vin=${encodeURIComponent(vin)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`;
-    const rejectUrl = `http://localhost:5000/api/auth/foreign/reject?matricule=${encodeURIComponent(matricule)}`;
+    const rejectUrl = `http://localhost:5000/api/auth/foreign/reject?matricule=${encodeURIComponent(matricule)}&vin=${encodeURIComponent(vin)}`;
 
     await sendEmail(
       process.env.EMAIL_USER,
@@ -197,6 +205,9 @@ exports.foreignApprove = async (req, res) => {
   try {
     const otpCode = generateOTP();
 
+    const requestKey = `${matricule.trim().toUpperCase()}|${vin.trim().toUpperCase()}`;
+    foreignRequestStatus[requestKey] = 'approved';
+
     // Send OTP via email
     await dispatchOTP({ type: 'email', value: email }, otpCode);
 
@@ -233,7 +244,12 @@ exports.foreignApprove = async (req, res) => {
 
 // ─── Back-office Reject ───────────────────────────────────────────────────────
 exports.foreignReject = async (req, res) => {
-  const { matricule } = req.query;
+  const { matricule, vin } = req.query;
+
+  const requestKey = `${matricule?.trim().toUpperCase() || ''}|${vin?.trim().toUpperCase() || ''}`;
+  if (requestKey in foreignRequestStatus) {
+    foreignRequestStatus[requestKey] = 'rejected';
+  }
 
   res.send(`
     <div style="font-family:sans-serif;text-align:center;padding:3rem;">
@@ -279,6 +295,19 @@ exports.verifyOTP = async (req, res) => {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
+// ─── Foreign Request Status ──────────────────────────────────────────────────
+exports.foreignStatus = async (req, res) => {
+  const { matricule, vin } = req.query;
+  if (!matricule || !vin) {
+    return res.status(400).json({ message: 'Missing matricule or vin' });
+  }
+
+  const requestKey = `${matricule.trim().toUpperCase()}|${vin.trim().toUpperCase()}`;
+  const status = foreignRequestStatus[requestKey] || 'unknown';
+
+  res.json({ status });
 };
 
 // ─── Verify Foreign OTP ───────────────────────────────────────────────────────

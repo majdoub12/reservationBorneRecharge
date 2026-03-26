@@ -30,6 +30,42 @@ function ForeignAuth() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (step !== 2) return;
+
+    const matricule = formData.matricule.trim();
+    const vin = formData.vin.trim();
+    if (!matricule || !vin) return;
+
+    const poll = async () => {
+      try {
+        const statusResp = await fetch(
+          `http://localhost:5000/api/auth/foreign/status?matricule=${encodeURIComponent(matricule)}&vin=${encodeURIComponent(vin)}`
+        );
+
+        if (!statusResp.ok) return;
+
+        const { status } = await statusResp.json();
+
+        if (status === 'approved') {
+          setStep(3);
+          navigate('/verify-foreign-otp', { state: { email: formData.email } });
+        } else if (status === 'rejected') {
+          setError('Your foreign vehicle request was rejected by back-office. Please review and retry.');
+          setStep(1);
+        }
+      } catch (err) {
+        console.warn('Unable to read foreign auth status:', err);
+      }
+    };
+
+    const intervalId = setInterval(poll, 3000);
+    // initial immediate check
+    poll();
+
+    return () => clearInterval(intervalId);
+  }, [step, formData, navigate]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -202,6 +238,7 @@ function ForeignAuth() {
           <div className="waiting-step">
             <div className="waiting-icon">SYNC</div>
             <h2>Request submitted</h2>
+            {error && <p className="error-msg" style={{ marginTop: '0.5rem' }}>{error}</p>}
             <p>
               Your vehicle details have been sent to our back-office team
               for validation. Once approved, you will receive your OTP at:

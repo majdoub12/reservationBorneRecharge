@@ -15,6 +15,7 @@ router.post('/foreign', authController.foreignAuth);
 // Back-office approve/reject (called via email links)
 router.get('/foreign/approve', authController.foreignApprove);
 router.get('/foreign/reject', authController.foreignReject);
+router.get('/foreign/status', authController.foreignStatus);
 
 // OTP verification
 router.post('/verify-otp', authController.verifyOTP);
