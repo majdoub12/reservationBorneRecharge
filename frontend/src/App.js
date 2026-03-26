@@ -1,16 +1,16 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
-import TunisianAuth from './pages/TunisianAuth';
-import OTPVerification from './pages/OTPVerification';
-import ForeignAuth from './pages/ForeignAuth';
-import ForeignOTPVerification from './pages/ForeignOTPVerification';
-import ManageContacts from './pages/ManageContacts';
+import TunisianAuth from './pages/authentication/TunisianAuth';
+import OTPVerification from './pages/authentication/OTPVerification';
+import ForeignAuth from './pages/authentication/ForeignAuth';
+import ForeignOTPVerification from './pages/authentication/ForeignOTPVerification';
+import ManageContacts from './pages/authentication/ManageContacts';
 
 // other pages will come later
 
 import ProtectedRoute from './components/ProtectedRoute';
-import DashboardStub from './pages/DashboardStub';
+import Reservation from './pages/Reservation';
 
 function App() {
   return (
@@ -24,10 +24,10 @@ function App() {
         
         {/* Protected Routes */}
         <Route 
-          path="/dashboard" 
+          path="/reservation" 
           element={
             <ProtectedRoute>
-              <DashboardStub />
+              <Reservation />
             </ProtectedRoute>
           } 
         />

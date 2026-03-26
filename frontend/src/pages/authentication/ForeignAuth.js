@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ForeignAuth.css';
-import { COUNTRIES } from '../utils/constants';
+import { COUNTRIES } from '../../utils/constants';
 
 function ForeignAuth() {
   const navigate = useNavigate();

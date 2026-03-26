@@ -154,11 +154,41 @@ exports.foreignAuth = async (req, res) => {
       return res.status(404).json({ message: 'Vehicle not found in external system' });
     }
 
-    // Mark request pending in status store
-    const requestKey = `${matricule.trim().toUpperCase()}|${vin.trim().toUpperCase()}`;
+    const normalizedMatricule = matricule.trim().toUpperCase();
+    const normalizedVin = vin.trim().toUpperCase();
+
+    // 2. Check if vehicle already exists locally (either foreign or local)
+    const existingVehicleResult = await pool.query(
+      'SELECT * FROM vehicles WHERE UPPER(vin) = $1 OR UPPER(immatricul) = $2 LIMIT 1',
+      [normalizedVin, normalizedMatricule]
+    );
+
+    if (existingVehicleResult.rows.length > 0) {
+      const existingVehicle = existingVehicleResult.rows[0];
+      if (!existingVehicle.is_foreign) {
+        return res.status(409).json({ message: 'Vehicle already exists as local vehicle' });
+      }
+
+      return res.json({
+        message: 'Foreign vehicle already registered',
+        vehicleId: existingVehicle.id,
+        existing: true,
+        is_foreign: existingVehicle.is_foreign,
+        is_temporary: existingVehicle.is_temporary
+      });
+    }
+
+    // 3. Save temporary foreign vehicle record (for approval flow)
+    const newVehicleResult = await pool.query(
+      'INSERT INTO vehicles (immatricul, vin, is_foreign, is_temporary) VALUES ($1, $2, TRUE, TRUE) RETURNING *',
+      [normalizedMatricule, normalizedVin]
+    );
+    const tempVehicle = newVehicleResult.rows[0];
+
+    const requestKey = `${normalizedMatricule}|${normalizedVin}`;
     foreignRequestStatus[requestKey] = 'pending';
 
-    // 2. Send back-office validation email
+    // 4. Ask back-office to validate the foreign vehicle
     const approveUrl = `http://localhost:5000/api/auth/foreign/approve?matricule=${encodeURIComponent(matricule)}&vin=${encodeURIComponent(vin)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`;
     const rejectUrl = `http://localhost:5000/api/auth/foreign/reject?matricule=${encodeURIComponent(matricule)}&vin=${encodeURIComponent(vin)}`;
 
@@ -190,7 +220,11 @@ exports.foreignAuth = async (req, res) => {
       `
     );
 
-    res.json({ message: 'Request sent to back-office for validation. Please wait.' });
+    res.json({
+      message: 'Foreign vehicle request sent to back-office for validation',
+      vehicleId: tempVehicle.id,
+      status: 'pending'
+    });
 
   } catch (err) {
     console.error(err);
@@ -202,16 +236,51 @@ exports.foreignAuth = async (req, res) => {
 exports.foreignApprove = async (req, res) => {
   const { matricule, vin, email, phone } = req.query;
 
-  try {
-    const otpCode = generateOTP();
+  if (!matricule || !vin || !email) {
+    return res.status(400).send('Missing required query params');
+  }
 
-    const requestKey = `${matricule.trim().toUpperCase()}|${vin.trim().toUpperCase()}`;
+  try {
+    const normalizedMatricule = matricule.trim().toUpperCase();
+    const normalizedVin = vin.trim().toUpperCase();
+
+    const requestKey = `${normalizedMatricule}|${normalizedVin}`;
     foreignRequestStatus[requestKey] = 'approved';
 
-    // Send OTP via email
-    await dispatchOTP({ type: 'email', value: email }, otpCode);
+    // Ensure the vehicle exists or create it in the vehicles table
+    let vehicleResult = await pool.query(
+      'SELECT * FROM vehicles WHERE UPPER(immatricul) = $1 OR UPPER(vin) = $2 LIMIT 1',
+      [normalizedMatricule, normalizedVin]
+    );
 
-    // Send OTP via WhatsApp if phone provided
+    let vehicle;
+    if (vehicleResult.rows.length === 0) {
+      const insertResult = await pool.query(
+        'INSERT INTO vehicles (immatricul, vin, is_foreign, is_temporary) VALUES ($1, $2, TRUE, FALSE) RETURNING *',
+        [normalizedMatricule, normalizedVin]
+      );
+      vehicle = insertResult.rows[0];
+    } else {
+      vehicle = vehicleResult.rows[0];
+      if (!vehicle.is_foreign) {
+        return res.status(409).send('Vehicle exists as local vehicle');
+      }
+      await pool.query('UPDATE vehicles SET is_temporary = FALSE WHERE id = $1', [vehicle.id]);
+    }
+
+    // Clean up old OTPs for this vehicle
+    await pool.query(
+      'UPDATE otps SET expired = true WHERE vehicle_id = $1 AND is_used = false',
+      [vehicle.id]
+    );
+
+    const otpCode = generateOTP();
+    await pool.query(
+      'INSERT INTO otps (vehicle_id, code, expired, is_used) VALUES ($1, $2, false, false)',
+      [vehicle.id, otpCode]
+    );
+
+    await dispatchOTP({ type: 'email', value: email }, otpCode);
     if (phone) {
       try {
         await dispatchOTP({ type: 'phone', value: phone }, otpCode);
@@ -219,14 +288,6 @@ exports.foreignApprove = async (req, res) => {
         console.warn('WhatsApp send failed, email OTP already sent:', e.message);
       }
     }
-
-    // Store OTP in foreign_otps table
-    await pool.query(
-      `INSERT INTO foreign_otps (matricule, vin, email, phone, code)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (email) DO UPDATE SET code=$5, created_at=NOW()`,
-      [matricule, vin, email, phone, otpCode]
-    );
 
     res.send(`
       <div style="font-family:sans-serif;text-align:center;padding:3rem;">
@@ -246,9 +307,26 @@ exports.foreignApprove = async (req, res) => {
 exports.foreignReject = async (req, res) => {
   const { matricule, vin } = req.query;
 
-  const requestKey = `${matricule?.trim().toUpperCase() || ''}|${vin?.trim().toUpperCase() || ''}`;
+  const normalizedMatricule = matricule?.trim().toUpperCase();
+  const normalizedVin = vin?.trim().toUpperCase();
+  const requestKey = `${normalizedMatricule || ''}|${normalizedVin || ''}`;
+
   if (requestKey in foreignRequestStatus) {
     foreignRequestStatus[requestKey] = 'rejected';
+  }
+
+  if (normalizedMatricule || normalizedVin) {
+    const vehicleResult = await pool.query(
+      'SELECT * FROM vehicles WHERE UPPER(immatricul) = $1 OR UPPER(vin) = $2 LIMIT 1',
+      [normalizedMatricule, normalizedVin]
+    );
+
+    if (vehicleResult.rows.length > 0) {
+      const vehicle = vehicleResult.rows[0];
+      if (vehicle.is_foreign && vehicle.is_temporary) {
+        await pool.query('DELETE FROM vehicles WHERE id = $1', [vehicle.id]);
+      }
+    }
   }
 
   res.send(`
@@ -312,32 +390,56 @@ exports.foreignStatus = async (req, res) => {
 
 // ─── Verify Foreign OTP ───────────────────────────────────────────────────────
 exports.verifyForeignOTP = async (req, res) => {
-  const { email, code } = req.body;
+  const { vehicleId, email, code } = req.body;
+  let targetVehicleId = vehicleId;
 
   try {
-    const result = await pool.query(
-      'SELECT * FROM foreign_otps WHERE email=$1 AND code=$2',
-      [email, code]
-    );
+    if (!targetVehicleId) {
+      if (!email) {
+        return res.status(400).json({ message: 'vehicleId or email is required' });
+      }
 
-    if (result.rows.length === 0) {
-      return res.status(400).json({ message: 'Invalid OTP' });
+      const emailRes = await pool.query(
+        'SELECT vehicle_id FROM emails WHERE address=$1 LIMIT 1',
+        [email]
+      );
+      if (emailRes.rows.length === 0) {
+        return res.status(404).json({ message: 'Vehicle not found for the given email' });
+      }
+      targetVehicleId = emailRes.rows[0].vehicle_id;
     }
 
-    const otp = result.rows[0];
+    const otpResult = await pool.query(
+      'SELECT * FROM otps WHERE vehicle_id=$1 AND code=$2 AND is_used=false AND expired=false',
+      [targetVehicleId, code]
+    );
 
+    if (otpResult.rows.length === 0) {
+      return res.status(400).json({ message: 'Invalid or already used OTP' });
+    }
+
+    const otp = otpResult.rows[0];
     const now = new Date().getTime();
     const createdAt = new Date(otp.created_at + 'Z').getTime();
     const diffMinutes = (now - createdAt) / (1000 * 60);
 
     if (diffMinutes > 5) {
-      await pool.query('DELETE FROM foreign_otps WHERE email=$1', [email]);
+      await pool.query('DELETE FROM otps WHERE id=$1', [otp.id]);
+
+      // Delete temporary foreign vehicle if OTP expired and it is not yet verified
+      const vehicleResult = await pool.query('SELECT * FROM vehicles WHERE id=$1', [targetVehicleId]);
+      if (vehicleResult.rows.length > 0 && vehicleResult.rows[0].is_foreign && vehicleResult.rows[0].is_temporary) {
+        await pool.query('DELETE FROM vehicles WHERE id=$1', [targetVehicleId]);
+      }
+
       return res.status(400).json({ message: 'OTP expired' });
     }
 
-    await pool.query('DELETE FROM foreign_otps WHERE email=$1', [email]);
+    await pool.query('UPDATE otps SET is_used=true WHERE id=$1', [otp.id]);
 
-    const token = generateToken({ email, foreign: true });
+    await pool.query('UPDATE vehicles SET is_temporary=false WHERE id=$1 AND is_foreign=TRUE', [targetVehicleId]);
+
+    const token = generateToken({ vehicleId: targetVehicleId, foreign: true });
 
     res.json({ message: 'OTP verified successfully', token });
 

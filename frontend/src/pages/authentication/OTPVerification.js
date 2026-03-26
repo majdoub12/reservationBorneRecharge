@@ -89,7 +89,7 @@ function OTPVerification() {
       }
 
       localStorage.setItem('token', data.token);
-      navigate('/dashboard');
+      navigate('/reservation');
     } catch (err) {
       setError('Cannot reach server. Please try again.');
     } finally {

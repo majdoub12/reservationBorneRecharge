@@ -18,10 +18,12 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes); 
 
-
+const reservationRoutes = require('./routes/reservationRouter');
+app.use('/api/reservations', reservationRoutes);
 
 
 const PORT = process.env.PORT || 5000;
+
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

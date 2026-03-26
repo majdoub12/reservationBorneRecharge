@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './ManageContacts.css';
-import { COUNTRIES } from '../utils/constants';
+import { COUNTRIES } from '../../utils/constants';
 
 function ManageContacts() {
   const navigate = useNavigate();
