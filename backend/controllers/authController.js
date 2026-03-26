@@ -65,6 +65,46 @@ async function dispatchOTP(contact, otpCode) {
   }
 }
 
+async function ensureForeignVehicleContacts(vehicleId, email, phone) {
+  if (email) {
+    const existingEmail = await pool.query(
+      'SELECT id FROM emails WHERE vehicle_id=$1 AND address=$2 LIMIT 1',
+      [vehicleId, email]
+    );
+
+    if (existingEmail.rows.length === 0) {
+      await pool.query(
+        'INSERT INTO emails (vehicle_id, address, is_active) VALUES ($1, $2, TRUE)',
+        [vehicleId, email]
+      );
+    } else {
+      await pool.query(
+        'UPDATE emails SET is_active=TRUE WHERE id=$1',
+        [existingEmail.rows[0].id]
+      );
+    }
+  }
+
+  if (phone) {
+    const existingPhone = await pool.query(
+      'SELECT id FROM telephones WHERE vehicle_id=$1 AND number=$2 LIMIT 1',
+      [vehicleId, phone]
+    );
+
+    if (existingPhone.rows.length === 0) {
+      await pool.query(
+        'INSERT INTO telephones (vehicle_id, number, is_active) VALUES ($1, $2, TRUE)',
+        [vehicleId, phone]
+      );
+    } else {
+      await pool.query(
+        'UPDATE telephones SET is_active=TRUE WHERE id=$1',
+        [existingPhone.rows[0].id]
+      );
+    }
+  }
+}
+
 // ─── Tunisian Car Auth ────────────────────────────────────────────────────────
 exports.tunisianAuth = async (req, res) => {
   const { immatricul, vin } = req.body;
@@ -166,13 +206,24 @@ exports.foreignAuth = async (req, res) => {
     if (existingVehicleResult.rows.length > 0) {
       const existingVehicle = existingVehicleResult.rows[0];
       if (!existingVehicle.is_foreign) {
-        return res.status(409).json({ message: 'Vehicle already exists as local vehicle' });
+        return res.status(409).json({
+          message: 'Vehicle already exists as local vehicle',
+          status: 'already_registered_local'
+        });
       }
 
+      await ensureForeignVehicleContacts(existingVehicle.id, email, phone);
+
+      const existingStatus = existingVehicle.is_temporary ? 'pending_approval' : 'approved';
+      const existingMessage = existingVehicle.is_temporary
+        ? 'This foreign vehicle has already been submitted and is still waiting for back-office approval.'
+        : 'This foreign vehicle is already approved. You can proceed directly to OTP verification.';
+
       return res.json({
-        message: 'Foreign vehicle already registered',
+        message: existingMessage,
         vehicleId: existingVehicle.id,
         existing: true,
+        status: existingStatus,
         is_foreign: existingVehicle.is_foreign,
         is_temporary: existingVehicle.is_temporary
       });
@@ -184,6 +235,8 @@ exports.foreignAuth = async (req, res) => {
       [normalizedMatricule, normalizedVin]
     );
     const tempVehicle = newVehicleResult.rows[0];
+
+    await ensureForeignVehicleContacts(tempVehicle.id, email, phone);
 
     const requestKey = `${normalizedMatricule}|${normalizedVin}`;
     foreignRequestStatus[requestKey] = 'pending';
@@ -267,6 +320,8 @@ exports.foreignApprove = async (req, res) => {
       }
       await pool.query('UPDATE vehicles SET is_temporary = FALSE WHERE id = $1', [vehicle.id]);
     }
+
+    await ensureForeignVehicleContacts(vehicle.id, email, phone);
 
     // Clean up old OTPs for this vehicle
     await pool.query(

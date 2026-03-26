@@ -18,6 +18,7 @@ function ForeignAuth() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -77,6 +78,7 @@ function ForeignAuth() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setInfoMessage('');
 
     const fullPhone = `${selectedCountry.code}${formData.phone.replace(/\D/g, '')}`;
 
@@ -105,6 +107,14 @@ function ForeignAuth() {
         return;
       }
 
+      if (data.status === 'approved') {
+        navigate('/verify-foreign-otp', { state: { email: formData.email } });
+        return;
+      }
+
+      setInfoMessage(
+        data.message || 'Your vehicle details have been sent to our back-office team for validation.'
+      );
       setStep(2);
     } catch (err) {
       setError('Cannot reach server. Please try again.');
@@ -220,6 +230,7 @@ function ForeignAuth() {
             </div>
 
             {error && <p className="error-msg">{error}</p>}
+            {!error && infoMessage && <p className="success-msg">{infoMessage}</p>}
 
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? 'Submitting...' : 'Submit request'}
@@ -237,11 +248,11 @@ function ForeignAuth() {
         {step === 2 && (
           <div className="waiting-step">
             <div className="waiting-icon">SYNC</div>
-            <h2>Request submitted</h2>
+            <h2>{infoMessage.includes('already') ? 'Request already in progress' : 'Request submitted'}</h2>
             {error && <p className="error-msg" style={{ marginTop: '0.5rem' }}>{error}</p>}
+            {!error && infoMessage && <p className="success-msg">{infoMessage}</p>}
             <p>
-              Your vehicle details have been sent to our back-office team
-              for validation. Once approved, you will receive your OTP at:
+              Once approved, you will receive your OTP at:
             </p>
             <div className="contact-summary">
               <div className="contact-summary-item">

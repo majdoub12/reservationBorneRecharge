@@ -274,6 +274,16 @@
   margin: 0;
 }
 
+.success-msg {
+  color: #d5fff1;
+  font-size: 0.85rem;
+  background: rgba(35, 196, 131, 0.12);
+  border: 1px solid rgba(35, 196, 131, 0.22);
+  border-radius: 14px;
+  padding: 0.6rem 0.9rem;
+  margin: 0;
+}
+
 .btn-primary {
   padding: 1rem;
   background: linear-gradient(135deg, #effcff 0%, #9feeff 48%, #45daf9 100%);
