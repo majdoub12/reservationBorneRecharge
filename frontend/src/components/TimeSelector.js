@@ -39,23 +39,13 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
         setSelectedSlot(null); // Reset selected slot when date changes
     };
 
-    const handleSlotSelect = (slot) => {
-        if (!slot.available) return;
-        
-        setSelectedSlot(slot);
-        // Notify parent component
-        if (onSlotSelected) {
-            onSlotSelected(slot, selectedDate);
-        }
-    };
-
-    const formatTime = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    };
-
     const formatDate = (date) => {
         return date.toISOString().split('T')[0];
+    };
+
+    const isPastSlot = (slot) => {
+        const slotDateTime = new Date(`${slot.date_reserve}T${slot.heur_reserve.substring(0, 8)}`);
+        return !Number.isNaN(slotDateTime.getTime()) && slotDateTime < new Date();
     };
 
     const minDate = new Date();
@@ -112,7 +102,7 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
                                     onChange={(e) => {
                                         const chosenTime = e.target.value;
                                         const slot = slots.find(s => s.heur_reserve === chosenTime);
-                                        if (slot?.available) {
+                                        if (slot?.available && !isPastSlot(slot)) {
                                             setSelectedSlot(slot);
                                             if (onSlotSelected) onSlotSelected(slot, selectedDate);
                                         }
@@ -126,9 +116,9 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
                                         <option
                                             key={slot.id}
                                             value={slot.heur_reserve}
-                                            disabled={!slot.available}
+                                            disabled={!slot.available || isPastSlot(slot)}
                                         >
-                                            {slot.heur_reserve.substring(0, 5)} - {slot.available ? `${slot.available_places} place(s)` : 'Complet'}
+                                            {slot.heur_reserve.substring(0, 5)} - {!slot.available || isPastSlot(slot) ? 'Indisponible' : `${slot.available_places} place(s)`}
                                         </option>
                                     ))}
                                 </select>

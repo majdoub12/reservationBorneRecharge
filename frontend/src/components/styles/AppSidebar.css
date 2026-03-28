@@ -1,0 +1,112 @@
+.app-sidebar {
+  width: 250px;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 18px;
+  border-radius: 28px;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--sidebar-border);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(14px);
+}
+
+.app-sidebar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--sidebar-text);
+}
+
+.app-sidebar-brand strong,
+.app-sidebar-brand span {
+  display: block;
+}
+
+.app-sidebar-brand strong {
+  font-size: 0.98rem;
+}
+
+.app-sidebar-brand span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.app-sidebar-mark {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffffff, #8df7ff 55%, #0f6d90 100%);
+  box-shadow: 0 0 22px rgba(141, 247, 255, 0.7);
+}
+
+.app-sidebar-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.app-side-link,
+.app-sidebar-logout {
+  border: none;
+  text-decoration: none;
+  color: var(--sidebar-text);
+  background: transparent;
+  padding: 12px 14px;
+  border-radius: 18px;
+  font-weight: 600;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.app-side-link:hover,
+.app-sidebar-logout:hover {
+  background: var(--sidebar-hover);
+  transform: translateX(2px);
+}
+
+.app-side-link.active {
+  background: linear-gradient(135deg, #12313d, #0b8160);
+  color: #ffffff;
+}
+
+.app-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-sidebar-chip {
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--sidebar-chip-bg);
+  color: var(--sidebar-text);
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.app-sidebar-logout {
+  cursor: pointer;
+  text-align: left;
+}
+
+@media (max-width: 960px) {
+  .app-sidebar {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .app-sidebar-links {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .app-sidebar-footer {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

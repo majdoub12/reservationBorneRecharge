@@ -1,18 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import TunisianAuth from './pages/authentication/TunisianAuth';
 import OTPVerification from './pages/authentication/OTPVerification';
 import ForeignAuth from './pages/authentication/ForeignAuth';
 import ForeignOTPVerification from './pages/authentication/ForeignOTPVerification';
-import ManageContacts from './pages/authentication/ManageContacts';
+import Settings from './pages/Settings';
+import ChargingVisualizationPage from './pages/Chargingvisualizationpage';
 
 // other pages will come later
 
 import ProtectedRoute from './components/ProtectedRoute';
 import Reservation from './pages/Reservation';
+import ActiveReservations from './pages/ActiveReservations';
+import Invoices from './pages/Invoices';
+import { initializeTheme } from './utils/theme';
 
 function App() {
+  useEffect(() => {
+    initializeTheme();
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -32,10 +40,34 @@ function App() {
           } 
         />
         <Route
-          path="/manage-contacts"
+          path="/active-reservations"
+          element={
+            <ProtectedRoute>
+              <ActiveReservations />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/invoices"
+          element={
+            <ProtectedRoute>
+              <Invoices />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
           element={
             <ProtectedRoute redirectTo="/tunisian-auth" allowWithStateKey="vehicleId">
-              <ManageContacts />
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/charging-visualization"
+          element={
+            <ProtectedRoute redirectTo="/tunisian-auth" allowWithStateKey="vehicleId">
+              <ChargingVisualizationPage />
             </ProtectedRoute>
           }
         />

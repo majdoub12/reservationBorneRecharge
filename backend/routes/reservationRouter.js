@@ -51,10 +51,34 @@ router.post('/create', reservationController.createReservation);
 router.get('/my-reservations/:carId', reservationController.getMyReservations);
 
 /**
+ * GET /api/reservations/charging
+ * Returns all active charging sessions
+ */
+router.get('/charging', reservationController.getAllChargingSessions);
+
+/**
+ * GET /api/reservations/invoices/:carId
+ * Récupère les factures d'une voiture
+ */
+router.get('/invoices/:carId', reservationController.getInvoicesByCarId);
+
+/**
  * GET /api/reservations/:reservationId
  * Récupère une réservation par ID
  */
 router.get('/:reservationId', reservationController.getReservationById);
+
+/**
+ * PATCH /api/reservations/:reservationId/status
+ * Met à jour le statut de chargement
+ */
+router.patch('/:reservationId/status', reservationController.updateReservationStatus);
+
+/**
+ * PATCH /api/reservations/:reservationId/pay
+ * Marque une réservation comme payée
+ */
+router.patch('/:reservationId/pay', reservationController.payReservation);
 
 /**
  * DELETE /api/reservations/:reservationId/cancel

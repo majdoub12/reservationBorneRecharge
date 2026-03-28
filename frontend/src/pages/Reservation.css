@@ -1,13 +1,19 @@
 .reservation-page {
     width: 100%;
     min-height: 100vh;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     padding: 20px;
 }
 
-.reservation-container {
-    max-width: 1400px;
+.reservation-layout {
+    max-width: 1440px;
     margin: 0 auto;
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.reservation-content {
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -145,6 +151,10 @@
 @media (max-width: 768px) {
     .reservation-page {
         padding: 10px;
+    }
+
+    .reservation-layout {
+        grid-template-columns: 1fr;
     }
 
     .map-list-wrapper {

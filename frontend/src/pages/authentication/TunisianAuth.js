@@ -261,7 +261,7 @@ function TunisianAuth() {
 
             <p className="manage-link">
               Need to update contacts?{' '}
-              <span onClick={() => navigate('/manage-contacts', { state: { vehicleId } })}>
+              <span onClick={() => navigate('/settings', { state: { vehicleId } })}>
                 Manage contact info
               </span>
             </p>

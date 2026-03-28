@@ -5,6 +5,18 @@
 
 const API_BASE_URL = 'http://localhost:5000/api/reservations';
 
+const formatDateForApi = (date) => {
+    if (typeof date === 'string') {
+        return date;
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+};
+
 /**
  * Récupère toutes les stations
  */
@@ -44,7 +56,7 @@ export const getStationById = async (stationId) => {
  */
 export const getSlotsByStation = async (stationId, date) => {
     try {
-        const formattedDate = date.toISOString().split('T')[0]; // Convert to YYYY-MM-DD
+        const formattedDate = formatDateForApi(date);
         const response = await fetch(
             `${API_BASE_URL}/stations/${stationId}/slots?date=${formattedDate}`
         );
@@ -163,7 +175,8 @@ export const cancelReservation = async (reservationId) => {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json().catch(() => null);
+            throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
@@ -191,6 +204,48 @@ export const deleteReservation = async (reservationId) => {
         return data;
     } catch (error) {
         console.error('Error deleting reservation:', error);
+        throw error;
+    }
+};
+
+/**
+ * Récupère les factures d'une voiture
+ */
+export const getInvoicesByCarId = async (carId) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/invoices/${carId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data.data;
+    } catch (error) {
+        console.error('Error fetching invoices:', error);
+        throw error;
+    }
+};
+
+/**
+ * Marque une réservation comme payée
+ */
+export const payReservation = async (reservationId) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/${reservationId}/pay`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.data;
+    } catch (error) {
+        console.error('Error paying reservation:', error);
         throw error;
     }
 };

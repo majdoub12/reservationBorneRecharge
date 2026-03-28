@@ -1,4 +1,5 @@
 const reservationService = require('../utils/reservationService');
+const CHARGING_STATUSES = ['charging_25', 'charging_50', 'charging_75', 'completed'];
 
 // =====================================================
 // STATIONS
@@ -234,6 +235,14 @@ const createReservation = async (req, res) => {
             });
         }
 
+        if (error.message.includes('PAST_SLOT')) {
+            return res.status(409).json({
+                success: false,
+                message: 'Conflict: Cannot create a reservation in the past',
+                error: error.message
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: 'Failed to create reservation',
@@ -269,6 +278,57 @@ const getMyReservations = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to retrieve reservations',
+            error: error.message
+        });
+    }
+};
+
+const getAllChargingSessions = async (req, res) => {
+    try {
+        const chargingSessions = await reservationService.getAllChargingSessions();
+
+        res.status(200).json({
+            success: true,
+            message: 'Charging sessions retrieved successfully',
+            data: chargingSessions
+        });
+    } catch (error) {
+        console.error('Error in getAllChargingSessions:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve charging sessions',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * GET /api/reservations/invoices/:carId
+ * Récupère l'historique des factures d'une voiture
+ */
+const getInvoicesByCarId = async (req, res) => {
+    try {
+        const { carId } = req.params;
+
+        if (!carId) {
+            return res.status(400).json({
+                success: false,
+                message: 'carId is required'
+            });
+        }
+
+        const invoices = await reservationService.getInvoicesByCarId(carId);
+
+        res.status(200).json({
+            success: true,
+            message: 'Invoices retrieved successfully',
+            data: invoices
+        });
+    } catch (error) {
+        console.error('Error in getInvoicesByCarId:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve invoices',
             error: error.message
         });
     }
@@ -322,9 +382,125 @@ const cancelReservation = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in cancelReservation:', error);
+
+        if (error.message.includes('NOT_FOUND')) {
+            return res.status(404).json({
+                success: false,
+                message: 'Reservation not found',
+                error: error.message
+            });
+        }
+
+        if (error.message.includes('INVALID_STATUS')) {
+            return res.status(409).json({
+                success: false,
+                message: 'Only pending reservations can be cancelled',
+                error: error.message
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: 'Failed to cancel reservation',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * PATCH /api/reservations/:reservationId/status
+ * Met à jour le statut de chargement d'une réservation
+ */
+const updateReservationStatus = async (req, res) => {
+    try {
+        const { reservationId } = req.params;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({
+                success: false,
+                message: 'status is required'
+            });
+        }
+
+        if (!CHARGING_STATUSES.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid status. Allowed values: ${CHARGING_STATUSES.join(', ')}`
+            });
+        }
+
+        const reservation = await reservationService.updateReservationStatus(reservationId, status);
+
+        res.status(200).json({
+            success: true,
+            message: 'Reservation status updated successfully',
+            data: reservation
+        });
+    } catch (error) {
+        console.error('Error in updateReservationStatus:', error);
+
+        if (error.message.includes('NOT_FOUND')) {
+            return res.status(404).json({
+                success: false,
+                message: 'Reservation not found',
+                error: error.message
+            });
+        }
+
+        if (error.message.includes('INVALID_STATUS')) {
+            return res.status(409).json({
+                success: false,
+                message: 'Invalid reservation status transition',
+                error: error.message
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update reservation status',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * PATCH /api/reservations/:reservationId/pay
+ * Marque une réservation comme payée
+ */
+const payReservation = async (req, res) => {
+    try {
+        const { reservationId } = req.params;
+
+        const reservation = await reservationService.markReservationAsPaid(reservationId);
+
+        res.status(200).json({
+            success: true,
+            message: 'Reservation paid successfully',
+            data: reservation
+        });
+    } catch (error) {
+        console.error('Error in payReservation:', error);
+
+        if (error.message.includes('NOT_FOUND')) {
+            return res.status(404).json({
+                success: false,
+                message: 'Reservation not found',
+                error: error.message
+            });
+        }
+
+        if (error.message.includes('INVALID_STATUS')) {
+            return res.status(409).json({
+                success: false,
+                message: 'Only completed reservations can be paid',
+                error: error.message
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to pay reservation',
             error: error.message
         });
     }
@@ -361,7 +537,11 @@ module.exports = {
     checkConflict,
     createReservation,
     getMyReservations,
+    getAllChargingSessions,
+    getInvoicesByCarId,
     getReservationById,
+    updateReservationStatus,
+    payReservation,
     cancelReservation,
     deleteReservation
 };
