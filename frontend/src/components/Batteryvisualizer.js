@@ -1,7 +1,7 @@
 import React from 'react';
 import './styles/Batteryvisualizer.css';
 
-const BatteryVisualizer = ({ progress, vehicleMatricule, stationName, chargingTime }) => {
+const BatteryVisualizer = ({ progress, vehicleMatricule, stationName, chargingTime, statusLabel }) => {
     /**
      * Visualize charging progress as a battery
      * progress: 0, 25, 50, 75, 100
@@ -10,7 +10,8 @@ const BatteryVisualizer = ({ progress, vehicleMatricule, stationName, chargingTi
      * chargingTime: estimated time in minutes
      */
 
-    const getBatteryColor = (progress) => {
+    const getBatteryColor = (progress, label) => {
+        if (label && /payment|required|complete/i.test(label)) return '#4caf50';
         if (progress === 0) return '#ccc';
         if (progress <= 25) return '#ff6b6b'; // Red
         if (progress <= 50) return '#ffa500'; // Orange
@@ -19,14 +20,18 @@ const BatteryVisualizer = ({ progress, vehicleMatricule, stationName, chargingTi
     };
 
     const getProgressText = (progress) => {
+        if (statusLabel) {
+            return statusLabel;
+        }
+
         const texts = {
-            0: '⏳ Préparation',
-            25: '🔋 25% - En cours',
-            50: '⚡ 50% - Mi-chemin',
-            75: '💳 75% - Bientôt prêt',
-            100: '✅ 100% - Prêt!'
+            0: 'Preparing charge',
+            25: 'Charging - 25%',
+            50: 'Charging - 50%',
+            75: 'Charging - 75%',
+            100: 'Charge complete'
         };
-        return texts[progress] || 'En cours de chargement...';
+        return texts[Math.round(progress)] || 'Charging in progress';
     };
 
     const estimatedTimeRemaining = (progress, totalTime) => {
@@ -50,7 +55,7 @@ const BatteryVisualizer = ({ progress, vehicleMatricule, stationName, chargingTi
                         className="battery-fill"
                         style={{
                             width: `${progress}%`,
-                            backgroundColor: getBatteryColor(progress)
+                            backgroundColor: getBatteryColor(progress, statusLabel)
                         }}
                     >
                         <span className="battery-text">{progress}%</span>
@@ -62,11 +67,11 @@ const BatteryVisualizer = ({ progress, vehicleMatricule, stationName, chargingTi
                 <div className="battery-terminal"></div>
             </div>
 
-            {/* Progress Status */}
+                {/* Progress Status */}
             <div className="progress-status">
                 <p className="status-text">{getProgressText(progress)}</p>
                 <p className="time-remaining">
-                    ⏱️ Temps estimé: ~{estimatedTimeRemaining(progress, chargingTime)} min
+                    Time remaining: ~{estimatedTimeRemaining(progress, chargingTime)} min
                 </p>
             </div>
 

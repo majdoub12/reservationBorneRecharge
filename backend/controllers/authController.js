@@ -6,6 +6,7 @@ const { queryExternalSystem } = require('../utils/mockExternalSystem');
 const twilio = require('twilio');
 
 let foreignRequestTableReady = false;
+let vehicleModelColumnReady = null;
 
 // ─── Twilio lazy init ─────────────────────────────────────────────────────────
 function getTwilioClient() {
@@ -125,6 +126,38 @@ async function ensureForeignRequestsTable() {
   `);
 
   foreignRequestTableReady = true;
+}
+
+async function vehicleHasModelColumn() {
+  if (vehicleModelColumnReady !== null) {
+    return vehicleModelColumnReady;
+  }
+
+  const result = await pool.query(`
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'vehicles' AND column_name = 'model'
+    LIMIT 1
+  `);
+
+  vehicleModelColumnReady = result.rows.length > 0;
+  return vehicleModelColumnReady;
+}
+
+async function fetchVehicleIdentityById(vehicleId) {
+  const hasModelColumn = await vehicleHasModelColumn();
+  const selectColumns = ['id', 'immatricul', 'vin'];
+
+  if (hasModelColumn) {
+    selectColumns.push('model');
+  }
+
+  const result = await pool.query(
+    `SELECT ${selectColumns.join(', ')} FROM vehicles WHERE id=$1 LIMIT 1`,
+    [vehicleId]
+  );
+
+  return result.rows[0] || null;
 }
 
 async function upsertForeignRequest({ matricule, vin, email, phone, vehicleId = null, status }) {
@@ -503,6 +536,10 @@ exports.verifyOTP = async (req, res) => {
   const { vehicleId, code } = req.body;
 
   try {
+    const vehicle = await fetchVehicleIdentityById(vehicleId);
+    const immatricul = vehicle?.immatricul || null;
+    const model = vehicle?.model || null;
+
     const result = await pool.query(
       'SELECT * FROM otps WHERE vehicle_id=$1 AND code=$2 AND is_used=false AND expired=false',
       [vehicleId, code]
@@ -525,7 +562,7 @@ exports.verifyOTP = async (req, res) => {
 
     await pool.query('DELETE FROM otps WHERE id=$1', [otp.id]);
 
-    const token = generateToken({ vehicleId });
+    const token = generateToken({ vehicleId, immatricul, model });
 
     res.json({ message: 'OTP verified successfully', token });
 
@@ -600,7 +637,13 @@ exports.verifyForeignOTP = async (req, res) => {
 
     await pool.query('UPDATE vehicles SET is_temporary=false WHERE id=$1 AND is_foreign=TRUE', [targetVehicleId]);
 
-    const token = generateToken({ vehicleId: targetVehicleId, foreign: true });
+    const vehicle = await fetchVehicleIdentityById(targetVehicleId);
+    const token = generateToken({
+      vehicleId: targetVehicleId,
+      immatricul: vehicle?.immatricul || null,
+      model: vehicle?.model || null,
+      foreign: true
+    });
 
     res.json({ message: 'OTP verified successfully', token });
 
@@ -673,6 +716,7 @@ exports.getContacts = async (req, res) => {
   if (!vehicleId) return res.status(400).json({ message: 'Vehicle ID required' });
 
   try {
+    const vehicleResult = await fetchVehicleIdentityById(vehicleId);
     const emailResult = await pool.query('SELECT id, address AS value FROM emails WHERE vehicle_id=$1', [vehicleId]);
     const phoneResult = await pool.query('SELECT id, number AS value FROM telephones WHERE vehicle_id=$1', [vehicleId]);
 
@@ -680,7 +724,14 @@ exports.getContacts = async (req, res) => {
       ...emailResult.rows.map(r => ({ ...r, type: 'email' })),
       ...phoneResult.rows.map(r => ({ ...r, type: 'phone' }))
     ];
-    res.json({ contacts });
+    const vehicle = vehicleResult.rows[0];
+    res.json({
+      contacts,
+      vehicleId,
+      plate: vehicleResult?.immatricul || null,
+      vin: vehicleResult?.vin || null,
+      model: vehicleResult?.model || null
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching contacts' });

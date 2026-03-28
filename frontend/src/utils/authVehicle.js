@@ -14,6 +14,17 @@ export const getVehicleFromToken = () => {
         const parsed = JSON.parse(jsonPayload);
         console.log('Decoded token payload:', parsed);
         const vehicleId = parsed.vehicleId || parsed.email;
+        const matricule =
+            parsed.immatricul ||
+            parsed.immatricule ||
+            parsed.plate ||
+            parsed.matricule ||
+            'Vehicule Autorise';
+        const model =
+            parsed.model ||
+            parsed.vehicleModel ||
+            parsed.carModel ||
+            null;
 
         if (!vehicleId) {
             return null;
@@ -21,7 +32,8 @@ export const getVehicleFromToken = () => {
 
         return {
             id: vehicleId,
-            matricule: parsed.immatricule ? parsed.immatricule : 'Vehicule Autorise',
+            matricule,
+            model,
             payload: parsed
         };
     } catch (error) {

@@ -1,11 +1,54 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import './styles/AppSidebar.css';
 import { getVehicleFromToken } from '../utils/authVehicle';
 
 const AppSidebar = () => {
     const navigate = useNavigate();
-    const vehicle = getVehicleFromToken();
+    const tokenVehicle = getVehicleFromToken();
+    const [vehicle, setVehicle] = useState(tokenVehicle);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const hydrateVehicle = async () => {
+            if (!tokenVehicle?.id) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:5000/api/auth/contacts/${tokenVehicle.id}`);
+                if (!response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+                if (!isMounted) {
+                    return;
+                }
+
+                setVehicle((current) => ({
+                    ...current,
+                    matricule: data.plate || current?.matricule || tokenVehicle.matricule,
+                    model: data.model || current?.model || tokenVehicle.model || null,
+                    payload: {
+                        ...current?.payload,
+                        plate: data.plate,
+                        vin: data.vin,
+                        model: data.model
+                    }
+                }));
+            } catch (error) {
+                console.error('Error hydrating vehicle in sidebar:', error);
+            }
+        };
+
+        hydrateVehicle();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [tokenVehicle?.id, tokenVehicle?.matricule]);
 
     const handleLogout = () => {
         localStorage.removeItem('token');

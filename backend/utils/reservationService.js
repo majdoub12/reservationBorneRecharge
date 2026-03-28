@@ -7,7 +7,7 @@ const STATUS_TRANSITIONS = {
     pending: ['charging_25'],
     charging_25: ['charging_50'],
     charging_50: ['charging_75'],
-    charging_75: ['completed'],
+    charging_75: ['completed', 'paid'],
     completed: ['paid'],
 };
 
@@ -16,9 +16,12 @@ const STATUS_TO_PROGRESS = {
     charging_25: 25,
     charging_50: 50,
     charging_75: 75,
-    completed: 100,
+    completed: 75,
     paid: 100
 };
+
+const ACTIVE_RESERVATION_STATUSES = ['pending', 'charging_25', 'charging_50', 'charging_75', 'completed'];
+const EXPIRED_PENDING_STATUS = 'missed';
 
 const parseReservationDateTime = (date_reserve, heur_reserve) => {
     const timeValue =
@@ -32,6 +35,87 @@ const parseReservationDateTime = (date_reserve, heur_reserve) => {
 const isReservationInPast = (date_reserve, heur_reserve) => {
     const reservationDateTime = parseReservationDateTime(date_reserve, heur_reserve);
     return Number.isNaN(reservationDateTime.getTime()) || reservationDateTime < new Date();
+};
+
+const cleanupExpiredPendingReservations = async () => {
+    try {
+        const result = await pool.query(
+            `UPDATE reservations
+             SET charging_status = $1
+             WHERE charging_status = 'pending'
+               AND to_timestamp(
+                    date_reserve::text || ' ' || heur_reserve::text,
+                    'YYYY-MM-DD HH24:MI:SS'
+               ) < NOW()
+             RETURNING id`,
+            [EXPIRED_PENDING_STATUS]
+        );
+
+        return result.rowCount;
+    } catch (error) {
+        console.error('Error cleaning up expired reservations:', error);
+        throw error;
+    }
+};
+
+const finalizeExpiredPendingRows = async (rows) => {
+    const now = new Date();
+    const expiredIds = rows
+        .filter((row) => row.charging_status === 'pending')
+        .filter((row) => parseReservationDateTime(row.date_reserve, row.heur_reserve) < now)
+        .map((row) => row.id);
+
+    if (expiredIds.length > 0) {
+        await pool.query(
+            `UPDATE reservations
+             SET charging_status = $1
+             WHERE id = ANY($2::uuid[])`,
+            [EXPIRED_PENDING_STATUS, expiredIds]
+        );
+    }
+
+    return rows.filter((row) => !expiredIds.includes(row.id));
+};
+
+const fetchReservationsByCarIdentifier = async (carIdentifier) => {
+    return pool.query(
+        `SELECT r.id, r.car_id, r.station_id, r.date_reserve, r.heur_reserve, r.created_at, r.charging_status AS status,
+                CASE r.charging_status
+                    WHEN 'pending' THEN 0
+                    WHEN 'charging_25' THEN 25
+                    WHEN 'charging_50' THEN 50
+                    WHEN 'charging_75' THEN 75
+                    WHEN 'completed' THEN 75
+                    WHEN 'paid' THEN 100
+                    ELSE 0
+                END AS charging_progress,
+                r.tariff, r.qr_code,
+                st.name as station_name, st.latitude, st.longitude
+         FROM reservations r
+         INNER JOIN stations st ON r.station_id = st.id
+         LEFT JOIN vehicles v ON r.car_id = v.id
+         WHERE (r.car_id::text = $1
+            OR v.immatricul = $1)
+         AND r.charging_status = ANY($2)
+         ORDER BY r.date_reserve DESC, r.heur_reserve DESC`,
+        [carIdentifier, ACTIVE_STATUSES]
+    );
+};
+
+const fetchInvoicesByCarIdentifier = async (carIdentifier) => {
+    return pool.query(
+        `SELECT i.id, i.reservation_id, i.amount, i.paid_at,
+                r.car_id, r.station_id, r.date_reserve, r.heur_reserve, r.charging_status AS status,
+                st.name AS station_name
+         FROM invoices i
+         INNER JOIN reservations r ON i.reservation_id = r.id
+         INNER JOIN stations st ON r.station_id = st.id
+         LEFT JOIN vehicles v ON r.car_id = v.id
+         WHERE (r.car_id::text = $1
+            OR v.immatricul = $1)
+         ORDER BY i.paid_at DESC NULLS LAST, r.date_reserve DESC, r.heur_reserve DESC`,
+        [carIdentifier]
+    );
 };
 
 // =====================================================
@@ -78,6 +162,7 @@ const getStationById = async (stationId) => {
  */
 const getSlotsByStationAndDate = async (stationId, date) => {
     try {
+        await cleanupExpiredPendingReservations();
         // date format: YYYY-MM-DD
         console.log(`[SLOTS] Fetching dynamic slots for station=${stationId}, date=${date}`);
 
@@ -90,9 +175,11 @@ const getSlotsByStationAndDate = async (stationId, date) => {
         const resCount = await pool.query(
             `SELECT heur_reserve, COUNT(*) as count 
              FROM reservations 
-             WHERE station_id=$1::uuid AND date_reserve=$2::date AND charging_status != 'cancelled'
+             WHERE station_id=$1::uuid
+               AND date_reserve=$2::date
+               AND charging_status = ANY($3)
              GROUP BY heur_reserve`,
-            [stationId, date]
+            [stationId, date, ACTIVE_RESERVATION_STATUSES]
         );
 
         const countsMap = {};
@@ -143,6 +230,7 @@ const getSlotsByStationAndDate = async (stationId, date) => {
  */
 const isTimeAvailable = async (stationId, date_reserve, heur_reserve) => {
     try {
+        await cleanupExpiredPendingReservations();
         if (isReservationInPast(date_reserve, heur_reserve)) {
             return false;
         }
@@ -153,8 +241,11 @@ const isTimeAvailable = async (stationId, date_reserve, heur_reserve) => {
 
         const resCount = await pool.query(
             `SELECT COUNT(*) as count FROM reservations 
-             WHERE station_id = $1::uuid AND date_reserve = $2::date AND heur_reserve = $3::time AND charging_status != 'cancelled'`,
-            [stationId, date_reserve, heur_reserve]
+             WHERE station_id = $1::uuid
+               AND date_reserve = $2::date
+               AND heur_reserve = $3::time
+               AND charging_status = ANY($4)`,
+            [stationId, date_reserve, heur_reserve, ACTIVE_RESERVATION_STATUSES]
         );
 
         const occupied = parseInt(resCount.rows[0].count);
@@ -175,6 +266,7 @@ const isTimeAvailable = async (stationId, date_reserve, heur_reserve) => {
  */
 const hasConflict = async (carId, date_reserve, heur_reserve) => {
     try {
+        await cleanupExpiredPendingReservations();
         console.log(`[CONFLICT] Checking conflict for car=${carId}, date=${date_reserve}, time=${heur_reserve}`);
 
         const conflictResult = await pool.query(
@@ -182,8 +274,8 @@ const hasConflict = async (carId, date_reserve, heur_reserve) => {
              WHERE car_id = $1
              AND date_reserve = $2::date
              AND heur_reserve = $3::time
-             AND charging_status IN ('pending', 'charging_25', 'charging_50', 'charging_75', 'completed')`,
-            [carId, date_reserve, heur_reserve]
+             AND charging_status = ANY($4)`,
+            [carId, date_reserve, heur_reserve, ACTIVE_RESERVATION_STATUSES]
         );
 
         const hasConflictFlag = conflictResult.rows.length > 0;
@@ -200,6 +292,7 @@ const hasConflict = async (carId, date_reserve, heur_reserve) => {
  */
 const createReservation = async (carId, stationId, date_reserve, heur_reserve, tariff) => {
     try {
+        await cleanupExpiredPendingReservations();
         console.log(`[RESERVATION] Creating reservation for car=${carId}, station=${stationId}, date=${date_reserve}, time=${heur_reserve}`);
 
         if (isReservationInPast(date_reserve, heur_reserve)) {
@@ -220,9 +313,10 @@ const createReservation = async (carId, stationId, date_reserve, heur_reserve, t
 
         // Créer la réservation
         const result = await pool.query(
-            `INSERT INTO reservations (car_id, station_id, date_reserve, heur_reserve, tariff, charging_status, charging_progress, qr_code)
-             VALUES ($1, $2::uuid, $3::date, $4::time, $5, 'pending', 0, '')
-             RETURNING id, car_id, station_id, date_reserve, heur_reserve, created_at, charging_status AS status, charging_progress, tariff`,
+            `INSERT INTO reservations (car_id, station_id, date_reserve, heur_reserve, tariff, charging_status, qr_code)
+             VALUES ($1, $2::uuid, $3::date, $4::time, $5, 'pending', '')
+             RETURNING id, car_id, station_id, date_reserve, heur_reserve, created_at, charging_status AS status,
+                0 AS charging_progress, tariff`,
             [carId, stationId, date_reserve, heur_reserve, tariff]
         );
 
@@ -271,21 +365,13 @@ const generateQRCodeForReservation = async (reservationId, stationName, vehicleM
  */
 const getReservationsByCarId = async (carId) => {
     try {
+        await cleanupExpiredPendingReservations();
         console.log(`[RESERVATIONS] Fetching reservations for car=${carId}`);
 
-        const result = await pool.query(
-            `SELECT r.id, r.car_id, r.station_id, r.date_reserve, r.heur_reserve, r.created_at, r.charging_status AS status, r.charging_progress, r.tariff, r.qr_code,
-                    st.name as station_name, st.latitude, st.longitude
-             FROM reservations r
-             INNER JOIN stations st ON r.station_id = st.id
-             WHERE r.car_id = $1
-             AND r.charging_status = ANY($2)
-             ORDER BY r.date_reserve DESC, r.heur_reserve DESC`,
-            [carId, ACTIVE_STATUSES]
-        );
+        const result = await fetchReservationsByCarIdentifier(carId);
 
         console.log(`[RESERVATIONS] Found ${result.rows.length} reservations`);
-        return result.rows;
+        return finalizeExpiredPendingRows(result.rows);
     } catch (error) {
         console.error('Error fetching reservations:', error);
         throw error;
@@ -297,14 +383,26 @@ const getReservationsByCarId = async (carId) => {
  */
 const getReservationById = async (reservationId) => {
     try {
+        await cleanupExpiredPendingReservations();
         const result = await pool.query(
-            `SELECT r.*, r.charging_status AS status, st.name as station_name
+            `SELECT r.*, r.charging_status AS status,
+                CASE r.charging_status
+                    WHEN 'pending' THEN 0
+                    WHEN 'charging_25' THEN 25
+                    WHEN 'charging_50' THEN 50
+                    WHEN 'charging_75' THEN 75
+                    WHEN 'completed' THEN 75
+                    WHEN 'paid' THEN 100
+                    ELSE 0
+                END AS charging_progress,
+                st.name as station_name
              FROM reservations r
              INNER JOIN stations st ON r.station_id = st.id
              WHERE r.id = $1::uuid`,
             [reservationId]
         );
-        return result.rows[0];
+        const rows = await finalizeExpiredPendingRows(result.rows);
+        return rows[0];
     } catch (error) {
         console.error('Error fetching reservation:', error);
         throw error;
@@ -313,15 +411,25 @@ const getReservationById = async (reservationId) => {
 
 const getAllChargingSessions = async () => {
     try {
+        await cleanupExpiredPendingReservations();
         const result = await pool.query(
             `SELECT
                 r.id,
+                r.car_id,
                 r.station_id,
                 st.name AS station_name,
                 st.average_duration_hours,
                 v.immatricul,
                 r.charging_status AS status,
-                r.charging_progress,
+                CASE r.charging_status
+                    WHEN 'pending' THEN 0
+                    WHEN 'charging_25' THEN 25
+                    WHEN 'charging_50' THEN 50
+                    WHEN 'charging_75' THEN 75
+                    WHEN 'completed' THEN 75
+                    WHEN 'paid' THEN 100
+                    ELSE 0
+                END AS charging_progress,
                 r.date_reserve,
                 r.heur_reserve
             FROM reservations r
@@ -332,7 +440,7 @@ const getAllChargingSessions = async () => {
             [CHARGING_OVERVIEW_STATUSES]
         );
 
-        return result.rows;
+        return finalizeExpiredPendingRows(result.rows);
     } catch (error) {
         console.error('Error fetching charging overview:', error);
         throw error;
@@ -344,17 +452,7 @@ const getAllChargingSessions = async () => {
  */
 const getInvoicesByCarId = async (carId) => {
     try {
-        const result = await pool.query(
-            `SELECT i.id, i.reservation_id, i.amount, i.paid_at,
-                    r.car_id, r.station_id, r.date_reserve, r.heur_reserve, r.charging_status AS status,
-                    st.name AS station_name
-             FROM invoices i
-             INNER JOIN reservations r ON i.reservation_id = r.id
-             INNER JOIN stations st ON r.station_id = st.id
-             WHERE r.car_id = $1
-             ORDER BY i.paid_at DESC NULLS LAST, r.date_reserve DESC, r.heur_reserve DESC`,
-            [carId]
-        );
+        const result = await fetchInvoicesByCarIdentifier(carId);
 
         return result.rows;
     } catch (error) {
@@ -368,6 +466,7 @@ const getInvoicesByCarId = async (carId) => {
  */
 const cancelReservation = async (reservationId) => {
     try {
+        await cleanupExpiredPendingReservations();
         const existingReservation = await getReservationById(reservationId);
         if (!existingReservation) {
             throw new Error('NOT_FOUND: Reservation not found');
@@ -394,6 +493,7 @@ const cancelReservation = async (reservationId) => {
  */
 const updateReservationStatus = async (reservationId, newStatus) => {
     try {
+        await cleanupExpiredPendingReservations();
         const existingReservation = await getReservationById(reservationId);
         if (!existingReservation) {
             throw new Error('NOT_FOUND: Reservation not found');
@@ -405,8 +505,8 @@ const updateReservationStatus = async (reservationId, newStatus) => {
         }
 
         const result = await pool.query(
-            'UPDATE reservations SET charging_status = $1, charging_progress = $2 WHERE id = $3::uuid RETURNING *, charging_status AS status',
-            [newStatus, STATUS_TO_PROGRESS[newStatus] ?? 0, reservationId]
+            'UPDATE reservations SET charging_status = $1 WHERE id = $2::uuid RETURNING *, charging_status AS status',
+            [newStatus, reservationId]
         );
 
         return result.rows[0];
@@ -422,6 +522,7 @@ const updateReservationStatus = async (reservationId, newStatus) => {
 const markReservationAsPaid = async (reservationId) => {
     const client = await pool.connect();
     try {
+        await cleanupExpiredPendingReservations();
         await client.query('BEGIN');
 
         const existingReservationResult = await client.query(
@@ -443,8 +544,8 @@ const markReservationAsPaid = async (reservationId) => {
         }
 
         const paidReservationResult = await client.query(
-            'UPDATE reservations SET charging_status = $1, charging_progress = $2 WHERE id = $3::uuid RETURNING *, charging_status AS status',
-            ['paid', STATUS_TO_PROGRESS.paid, reservationId]
+            'UPDATE reservations SET charging_status = $1 WHERE id = $2::uuid RETURNING *, charging_status AS status',
+            ['paid', reservationId]
         );
 
         const invoiceCheck = await client.query(

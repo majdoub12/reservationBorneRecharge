@@ -6,16 +6,27 @@ import { getVehicleFromToken } from '../utils/authVehicle';
 import * as reservationService from '../services/reservationService_frontend';
 
 const formatDateTime = (date, time, paidAt) => {
-    const rawValue = paidAt || `${date}T${time}`;
-    const parsed = new Date(rawValue);
-    if (Number.isNaN(parsed.getTime())) {
-        return rawValue;
+    if (paidAt) {
+        const parsed = new Date(paidAt);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toLocaleString('fr-FR', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            });
+        }
     }
 
-    return parsed.toLocaleString('fr-FR', {
-        dateStyle: 'medium',
-        timeStyle: 'short'
-    });
+    if (!date || !time) {
+        return `${date || ''} ${time || ''}`.trim();
+    }
+
+    const datePart = String(date).includes('T') ? String(date).split('T')[0] : String(date);
+    const [year, month, day] = datePart.split('-');
+    if (!year || !month || !day) {
+        return `${date} ${time}`;
+    }
+
+    return `${day}/${month}/${year} ${String(time).slice(0, 5)}`;
 };
 
 const buildPrintableInvoice = (invoice, vehicleMatricule) => `

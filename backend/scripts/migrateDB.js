@@ -9,7 +9,7 @@ async function runMigration() {
         const columnsResult = await pool.query(`
             SELECT column_name
             FROM information_schema.columns
-            WHERE table_name = 'vehicles' AND column_name IN ('is_foreign', 'is_temporary')
+            WHERE table_name = 'vehicles' AND column_name IN ('is_foreign', 'is_temporary', 'model')
         `);
 
         const existingColumns = columnsResult.rows.map(row => row.column_name);
@@ -33,6 +33,39 @@ async function runMigration() {
             `);
         } else {
             console.log('-> is_temporary column already exists');
+        }
+
+        if (!existingColumns.includes('model')) {
+            console.log('-> Adding model column...');
+            await pool.query(`
+                ALTER TABLE vehicles
+                ADD COLUMN model VARCHAR(32)
+            `);
+        } else {
+            console.log('-> model column already exists');
+        }
+
+        console.log('-> Checking model constraint...');
+        const modelConstraintResult = await pool.query(`
+            SELECT conname
+            FROM pg_constraint
+            WHERE conrelid = 'vehicles'::regclass AND conname = 'vehicles_model_check'
+            LIMIT 1
+        `);
+
+        if (modelConstraintResult.rows.length === 0) {
+            console.log('-> Adding model check constraint...');
+            try {
+                await pool.query(`
+                    ALTER TABLE vehicles
+                    ADD CONSTRAINT vehicles_model_check
+                    CHECK (model IS NULL OR model IN ('model3', 'modelS', 'modelY', 'modelX', 'cyberTruck'))
+                `);
+            } catch (err) {
+                console.log('-> model constraint might already exist or conflict with rows, skipping...');
+            }
+        } else {
+            console.log('-> model check constraint already exists');
         }
 
         // Check for unique constraints

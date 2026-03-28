@@ -249,3 +249,29 @@ export const payReservation = async (reservationId) => {
         throw error;
     }
 };
+
+/**
+ * Met à jour le statut d'une réservation
+ */
+export const updateReservationStatus = async (reservationId, status) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/${reservationId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.data;
+    } catch (error) {
+        console.error('Error updating reservation status:', error);
+        throw error;
+    }
+};

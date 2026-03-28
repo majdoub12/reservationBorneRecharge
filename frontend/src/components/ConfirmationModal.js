@@ -6,12 +6,29 @@ const ConfirmationModal = ({ isOpen, reservation, onClose, onConfirm }) => {
 
     if (!isOpen || !reservation) return null;
 
+    const formatReservationSlot = (dateTime) => {
+        if (!dateTime) {
+            return '';
+        }
+
+        const rawValue = String(dateTime);
+        const datePart = rawValue.includes('T') ? rawValue.split('T')[0] : rawValue;
+        const timePart = rawValue.includes('T') ? rawValue.split('T')[1] : '';
+        const [year, month, day] = datePart.split('-');
+
+        if (!year || !month || !day) {
+            return rawValue;
+        }
+
+        return `${day}/${month}/${year} ${String(timePart).slice(0, 5)}`;
+    };
+
     const handleCopyToClipboard = () => {
         const text = `
 Réservation Confirmée
 Station: ${reservation.stationName}
 Véhicule: ${reservation.vehicleMatricule}
-Date et Heure: ${new Date(reservation.dateTime).toLocaleString('fr-FR')}
+Date et Heure: ${formatReservationSlot(reservation.dateTime)}
 Tarif: ${reservation.tariff} TND
         `;
         navigator.clipboard.writeText(text);
@@ -45,7 +62,7 @@ Tarif: ${reservation.tariff} TND
                     <div class="info">
                         <p><strong>Station:</strong> ${reservation.stationName}</p>
                         <p><strong>Véhicule:</strong> ${reservation.vehicleMatricule}</p>
-                        <p><strong>Date/Heure:</strong> ${new Date(reservation.dateTime).toLocaleString('fr-FR')}</p>
+                        <p><strong>Date/Heure:</strong> ${formatReservationSlot(reservation.dateTime)}</p>
                         <p><strong>Tarif:</strong> ${reservation.tariff} TND</p>
                     </div>
                 </body>
@@ -108,7 +125,7 @@ Tarif: ${reservation.tariff} TND
                         <div className="detail-item">
                             <span className="detail-label">Date & Heure:</span>
                             <span className="detail-value">
-                                {new Date(reservation.dateTime).toLocaleString('fr-FR')}
+                                {formatReservationSlot(reservation.dateTime)}
                             </span>
                         </div>
                         <div className="detail-item highlight">

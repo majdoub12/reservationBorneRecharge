@@ -1,49 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './styles/Stationchargingtable.css';
-import BatteryVisualizer from './Batteryvisualizer';
 import * as chargingService from '../services/Chargingservice';
 
-const StationChargingTable = ({ stationId = null, autoRefresh = true, refreshInterval = 5000 }) => {
-    const [chargings, setChargings] = useState({});
-    const [stations, setStations] = useState({});
+const BUCKETS = [25, 50, 75, 100];
+
+const getBucketForSession = (session) => {
+    if (session.status === 'completed') {
+        return 50;
+    }
+
+    const progress = Number(session.charging_progress || 0);
+    if (progress >= 75) return 75;
+    if (progress >= 50) return 50;
+    return 25;
+};
+
+const getBucketLabel = (bucket) => `${bucket}%`;
+
+const StationChargingTable = ({
+    stationId = null,
+    autoRefresh = true,
+    refreshInterval = 5000,
+    vehicleMatricule = null
+}) => {
+    const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [expandedStations, setExpandedStations] = useState({});
+    const [stationName, setStationName] = useState('Charging station');
 
-    useEffect(() => {
-        fetchAllChargings();
-    }, []);
-
-    useEffect(() => {
-        if (!autoRefresh) {
-            return undefined;
-        }
-
-        const interval = setInterval(() => {
-            fetchAllChargings();
-        }, refreshInterval);
-
-        return () => clearInterval(interval);
-    }, [autoRefresh, refreshInterval]);
-
-    const fetchAllChargings = async () => {
+    const fetchSessions = async () => {
         try {
             setError(null);
             const data = await chargingService.getAllCharging();
-            const grouped = {};
-            const stationMap = {};
-
-            data.forEach((charging) => {
-                if (!grouped[charging.station_id]) {
-                    grouped[charging.station_id] = [];
-                    stationMap[charging.station_id] = charging.station_name || `Station ${charging.station_id}`;
-                }
-
-                grouped[charging.station_id].push(charging);
-            });
-
-            setChargings(grouped);
-            setStations(stationMap);
+            const filtered = stationId ? data.filter((session) => session.station_id === stationId) : data;
+            setSessions(filtered);
+            setStationName(filtered[0]?.station_name || 'Charging station');
         } catch (err) {
             setError('Unable to load charging sessions.');
             console.error(err);
@@ -52,143 +43,143 @@ const StationChargingTable = ({ stationId = null, autoRefresh = true, refreshInt
         }
     };
 
-    const toggleStationExpand = (nextStationId) => {
-        setExpandedStations((prev) => ({
-            ...prev,
-            [nextStationId]: !prev[nextStationId]
-        }));
-    };
+    useEffect(() => {
+        fetchSessions();
+    }, [stationId]);
 
-    const getVehiclesCount = (nextStationId) => chargings[nextStationId]?.length || 0;
-
-    const getAverageProgress = (nextStationId) => {
-        const vehicles = chargings[nextStationId] || [];
-
-        if (vehicles.length === 0) {
-            return 0;
+    useEffect(() => {
+        if (!autoRefresh) {
+            return undefined;
         }
 
-        const total = vehicles.reduce((sum, vehicle) => sum + Number(vehicle.charging_progress || 0), 0);
-        return Math.round(total / vehicles.length);
-    };
+        const interval = setInterval(() => {
+            fetchSessions();
+        }, refreshInterval);
 
-    const getProgressDistribution = (nextStationId) => {
-        const vehicles = chargings[nextStationId] || [];
+        return () => clearInterval(interval);
+    }, [autoRefresh, refreshInterval, stationId]);
 
-        return {
-            25: vehicles.filter((vehicle) => vehicle.charging_progress === 25).length,
-            50: vehicles.filter((vehicle) => vehicle.charging_progress === 50).length,
-            75: vehicles.filter((vehicle) => vehicle.charging_progress === 75).length,
-            100: vehicles.filter((vehicle) => vehicle.charging_progress === 100).length
+    const bucketedSessions = useMemo(() => {
+        const grouped = {
+            25: [],
+            50: [],
+            75: [],
+            100: []
         };
-    };
+
+        sessions.forEach((session) => {
+            const bucket = getBucketForSession(session);
+            if (grouped[bucket]) {
+                grouped[bucket].push(session);
+            }
+        });
+
+        return grouped;
+    }, [sessions]);
+
+    const visibleSessions = sessions.filter((session) => session.status !== 'paid');
 
     if (loading) {
-        return <div className="loading-state">Loading charging stations...</div>;
+        return <div className="loading-state">Loading charging station summary...</div>;
     }
 
     if (error) {
         return <div className="error-state">{error}</div>;
     }
 
-    const stationIds = stationId
-        ? Object.keys(chargings).filter((id) => id === stationId)
-        : Object.keys(chargings);
-
-    if (stationIds.length === 0) {
+    if (visibleSessions.length === 0) {
         return (
             <div className="empty-state">
-                <p>No vehicles are currently charging.</p>
+                <p>
+                    {stationId
+                        ? 'No vehicles are being served by this station yet.'
+                        : 'No vehicles are currently charging.'}
+                </p>
             </div>
         );
     }
 
+    const totalVehicles = visibleSessions.length;
+    const currentVehicleCount = vehicleMatricule
+        ? visibleSessions.filter((session) => session.immatricul === vehicleMatricule).length
+        : 0;
+
     return (
         <div className="station-charging-table">
-            <h2>Vehicles Charging by Station</h2>
+            <div className="station-summary-header">
+                <div>
+                    <span className="table-kicker">Station summary</span>
+                    <h2>{stationName}</h2>
+                </div>
 
-            <div className="stations-container">
-                {stationIds.map((nextStationId) => {
-                    const isExpanded = expandedStations[nextStationId];
-                    const vehicles = chargings[nextStationId] || [];
-                    const distribution = getProgressDistribution(nextStationId);
-                    const avgProgress = getAverageProgress(nextStationId);
-
-                    return (
-                        <div key={nextStationId} className="station-section">
-                            <div
-                                className="station-header"
-                                onClick={() => toggleStationExpand(nextStationId)}
-                            >
-                                <div className="header-left">
-                                    <h3>{stations[nextStationId]}</h3>
-                                    <span className="vehicle-count">
-                                        {getVehiclesCount(nextStationId)} vehicle(s)
-                                    </span>
-                                </div>
-
-                                <div className="header-right">
-                                    <div className="avg-progress">
-                                        <span className="progress-label">Average:</span>
-                                        <span className="progress-value">{avgProgress}%</span>
-                                    </div>
-                                    <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>
-                                        v
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="progress-distribution">
-                                <div className="distribution-item">
-                                    <span className="dist-label">25%:</span>
-                                    <span className="dist-count">{distribution[25]}</span>
-                                </div>
-                                <div className="distribution-item">
-                                    <span className="dist-label">50%:</span>
-                                    <span className="dist-count">{distribution[50]}</span>
-                                </div>
-                                <div className="distribution-item">
-                                    <span className="dist-label">75%:</span>
-                                    <span className="dist-count">{distribution[75]}</span>
-                                </div>
-                                <div className="distribution-item">
-                                    <span className="dist-label">100%:</span>
-                                    <span className="dist-count">{distribution[100]}</span>
-                                </div>
-                            </div>
-
-                            {isExpanded && (
-                                <div className="station-vehicles">
-                                    <div className="vehicles-grid">
-                                        {vehicles.map((vehicle) => (
-                                            <BatteryVisualizer
-                                                key={vehicle.id}
-                                                progress={vehicle.charging_progress}
-                                                vehicleMatricule={vehicle.immatricul}
-                                                stationName={stations[nextStationId]}
-                                                chargingTime={vehicle.charging_time_minutes}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                <div className="station-summary-stats">
+                    <div className="summary-chip">
+                        <span className="summary-label">Vehicles</span>
+                        <strong>{totalVehicles}</strong>
+                    </div>
+                    {vehicleMatricule && (
+                        <div className="summary-chip highlight">
+                            <span className="summary-label">Your car</span>
+                            <strong>{currentVehicleCount > 0 ? 'In progress' : 'Waiting'}</strong>
                         </div>
-                    );
-                })}
+                    )}
+                </div>
+            </div>
+
+            <div className="stage-table-wrap">
+                <table className="stage-table">
+                    <thead>
+                        <tr>
+                            {BUCKETS.map((bucket) => (
+                                <th key={bucket}>{getBucketLabel(bucket)}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            {BUCKETS.map((bucket) => (
+                                <td key={bucket}>
+                                    <div className="bucket-list">
+                                        {bucketedSessions[bucket].length > 0 ? (
+                                            bucketedSessions[bucket].map((session) => (
+                                                <span
+                                                    key={session.id}
+                                                    className={`matricule-chip ${
+                                                        session.immatricul === vehicleMatricule ? 'is-self' : ''
+                                                    }`}
+                                                >
+                                                    {session.immatricul}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="bucket-empty">—</span>
+                                        )}
+                                    </div>
+                                </td>
+                            ))}
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <div className="table-footer">
                 <div className="footer-stat">
-                    <span className="stat-label">Active stations:</span>
-                    <span className="stat-value">{stationIds.length}</span>
+                    <span className="stat-label">Stage 25%</span>
+                    <span className="stat-value">{bucketedSessions[25].length}</span>
                 </div>
                 <div className="footer-stat">
-                    <span className="stat-label">Total vehicles:</span>
-                    <span className="stat-value">
-                        {stationIds.reduce((sum, nextStationId) => sum + (chargings[nextStationId]?.length || 0), 0)}
-                    </span>
+                    <span className="stat-label">Stage 50%</span>
+                    <span className="stat-value">{bucketedSessions[50].length}</span>
                 </div>
-                <button className="btn-refresh" onClick={fetchAllChargings}>
+                <div className="footer-stat">
+                    <span className="stat-label">Stage 75%</span>
+                    <span className="stat-value">{bucketedSessions[75].length}</span>
+                </div>
+                <div className="footer-stat">
+                    <span className="stat-label">Stage 100%</span>
+                    <span className="stat-value">{bucketedSessions[100].length}</span>
+                </div>
+                <button className="btn-refresh" onClick={fetchSessions}>
                     Refresh
                 </button>
             </div>

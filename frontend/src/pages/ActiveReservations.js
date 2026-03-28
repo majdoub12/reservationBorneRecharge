@@ -11,19 +11,37 @@ const STATUS_LABELS = {
     charging_50: 'Charging 50%',
     charging_75: 'Charging 75%',
     completed: 'Completed - payment required',
-    paid: 'Paid'
+    paid: 'Paid',
+    missed: 'Missed'
+};
+
+const getReservationStatus = (reservation) => reservation?.status || reservation?.charging_status || '';
+
+const parseReservationDateTime = (date, time) => {
+    if (!date || !time) {
+        return null;
+    }
+
+    const datePart = String(date).includes('T') ? String(date).split('T')[0] : String(date);
+    const parsed = new Date(`${datePart}T${String(time).slice(0, 8)}`);
+
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const formatReservationDateTime = (date, time) => {
-    const parsed = new Date(`${date}T${time}`);
-    if (Number.isNaN(parsed.getTime())) {
+    if (!date || !time) {
         return `${date} ${time}`;
     }
 
-    return parsed.toLocaleString('fr-FR', {
-        dateStyle: 'medium',
-        timeStyle: 'short'
-    });
+    const datePart = String(date).includes('T') ? String(date).split('T')[0] : String(date);
+    const [year, month, day] = datePart.split('-');
+    const timePart = String(time).slice(0, 8);
+
+    if (!year || !month || !day) {
+        return `${date} ${time}`;
+    }
+
+    return `${day}/${month}/${year} ${timePart.slice(0, 5)}`;
 };
 
 const ActiveReservations = () => {
@@ -33,6 +51,7 @@ const ActiveReservations = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [actionLoadingId, setActionLoadingId] = useState(null);
+    const [selectedQrReservation, setSelectedQrReservation] = useState(null);
 
     useEffect(() => {
         const vehicle = getVehicleFromToken();
@@ -54,8 +73,14 @@ const ActiveReservations = () => {
             try {
                 setLoading(true);
                 setError(null);
-                const data = await reservationService.getMyReservations(carInfo.id);
-                setReservations(data || []);
+                const primaryData = await reservationService.getMyReservations(carInfo.id);
+                if (primaryData?.length || !carInfo.matricule || carInfo.matricule === carInfo.id) {
+                    setReservations(primaryData || []);
+                    return;
+                }
+
+                const fallbackData = await reservationService.getMyReservations(carInfo.matricule);
+                setReservations(fallbackData || primaryData || []);
             } catch (err) {
                 setError('Unable to load active reservations right now.');
                 console.error(err);
@@ -68,9 +93,19 @@ const ActiveReservations = () => {
     }, [carInfo]);
 
     const completedCount = useMemo(
-        () => reservations.filter((reservation) => reservation.charging_status === 'completed').length,
+        () => reservations.filter((reservation) => getReservationStatus(reservation) === 'completed').length,
         [reservations]
     );
+
+    const getReservationQrCode = (reservation) => reservation.qr_code || reservation.qrCode || null;
+
+    const openQrPopup = (reservation) => {
+        setSelectedQrReservation(reservation);
+    };
+
+    const closeQrPopup = () => {
+        setSelectedQrReservation(null);
+    };
 
     const handleCancel = async (reservationId) => {
         try {
@@ -98,6 +133,14 @@ const ActiveReservations = () => {
         } finally {
             setActionLoadingId(null);
         }
+    };
+
+    const handleOpenCharging = (reservation) => {
+        navigate('/charging-visualization', {
+            state: {
+                reservationId: reservation.id
+            }
+        });
     };
 
     if (!carInfo) {
@@ -167,9 +210,17 @@ const ActiveReservations = () => {
                     ) : (
                         <section className="active-reservation-list">
                             {reservations.map((reservation) => {
-                                const isPending = reservation.charging_status === 'pending';
-                                const isCompleted = reservation.charging_status === 'completed';
+                                const reservationStatus = getReservationStatus(reservation);
+                                const isPending = reservationStatus === 'pending';
+                                const isCompleted = reservationStatus === 'completed';
                                 const isBusy = actionLoadingId === reservation.id;
+                                const qrCode = getReservationQrCode(reservation);
+                                const startLabel =
+                                    reservationStatus === 'completed'
+                                        ? 'Open payment'
+                                        : reservationStatus.startsWith('charging_')
+                                            ? 'Continue charging'
+                                            : 'Start charging';
 
                                 return (
                                     <article
@@ -178,8 +229,8 @@ const ActiveReservations = () => {
                                     >
                                         <div className="reservation-card-header">
                                             <div>
-                                                <span className={`status-pill status-${reservation.charging_status}`}>
-                                                    {STATUS_LABELS[reservation.charging_status] || reservation.charging_status}
+                                                <span className={`status-pill status-${reservationStatus}`}>
+                                                    {STATUS_LABELS[reservationStatus] || reservationStatus}
                                                 </span>
                                                 <h2>{reservation.station_name}</h2>
                                             </div>
@@ -228,6 +279,10 @@ const ActiveReservations = () => {
                                         )}
 
                                         <div className="reservation-actions">
+                                            <button className="primary-action" onClick={() => handleOpenCharging(reservation)}>
+                                                {startLabel}
+                                            </button>
+
                                             {isPending ? (
                                                 <button
                                                     className="danger-action"
@@ -241,6 +296,16 @@ const ActiveReservations = () => {
                                                     Cancellation is available only while the reservation is pending.
                                                 </span>
                                             )}
+
+                                            {qrCode && (
+                                                <button
+                                                    className="ghost-action qr-toggle-action"
+                                                    onClick={() => openQrPopup(reservation)}
+                                                    type="button"
+                                                >
+                                                    Show QR code
+                                                </button>
+                                            )}
                                         </div>
                                     </article>
                                 );
@@ -249,6 +314,65 @@ const ActiveReservations = () => {
                     )}
                 </div>
             </div>
+
+            {selectedQrReservation && getReservationQrCode(selectedQrReservation) && (
+                <div className="qr-modal-overlay" onClick={closeQrPopup}>
+                    <div
+                        className="qr-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="qr-modal-title"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <button className="qr-modal-close" onClick={closeQrPopup} type="button">
+                            ×
+                        </button>
+
+                        <div className="qr-modal-header">
+                            <span className="meta-label">QR Code</span>
+                            <h2 id="qr-modal-title">{selectedQrReservation.station_name}</h2>
+                            <p>
+                                Present this QR code at the station when you arrive for your reservation.
+                            </p>
+                        </div>
+
+                        <div className="qr-modal-body">
+                            <div className="qr-modal-preview">
+                                <img
+                                    src={getReservationQrCode(selectedQrReservation)}
+                                    alt={`QR code for reservation ${selectedQrReservation.id}`}
+                                    className="qr-modal-image"
+                                />
+                            </div>
+
+                            <div className="qr-modal-details">
+                                <div className="detail-item">
+                                    <span className="detail-label">Reservation</span>
+                                    <span className="detail-value">
+                                        {selectedQrReservation.id.slice(0, 8).toUpperCase()}
+                                    </span>
+                                </div>
+                                <div className="detail-item">
+                                    <span className="detail-label">Schedule</span>
+                                    <span className="detail-value">
+                                        {formatReservationDateTime(
+                                            selectedQrReservation.date_reserve,
+                                            selectedQrReservation.heur_reserve
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="detail-item">
+                                    <span className="detail-label">Status</span>
+                                    <span className="detail-value">
+                                        {STATUS_LABELS[getReservationStatus(selectedQrReservation)] ||
+                                            getReservationStatus(selectedQrReservation)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
