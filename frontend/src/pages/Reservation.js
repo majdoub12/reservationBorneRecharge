@@ -133,8 +133,33 @@ const Reservation = () => {
                 <AppSidebar />
 
                 <div className="reservation-content">
+                    <div className="reservation-hero">
+                        <div className="hero-copy">
+                            <span className="hero-eyebrow">Reservation flow</span>
+                            <h1>Choose a station, preview the route, then book a time slot</h1>
+                            <p>
+                                The page is organized to guide you from station discovery to confirmation with as few distractions as possible.
+                            </p>
+                        </div>
+
+                        <div className="hero-pills" aria-label="Reservation steps">
+                            <span className="hero-pill active">1. Select station</span>
+                            <span className="hero-pill">2. Review route</span>
+                            <span className="hero-pill">3. Pick time</span>
+                            <span className="hero-pill">4. Confirm</span>
+                        </div>
+                    </div>
+
                     <div className="div-1">
                         <div className="map-list-wrapper">
+                            <div className="map-section">
+                                <StationMap
+                                    stations={stations}
+                                    selectedStation={selectedStation}
+                                    onSelectStation={handleStationSelect}
+                                />
+                            </div>
+
                             <div className="list-section">
                                 {loading && !stations.length ? (
                                     <div className="loading-section">
@@ -147,14 +172,6 @@ const Reservation = () => {
                                         onSelectStation={handleStationSelect}
                                     />
                                 )}
-                            </div>
-
-                            <div className="map-section">
-                                <StationMap
-                                    stations={stations}
-                                    selectedStation={selectedStation}
-                                    onSelectStation={handleStationSelect}
-                                />
                             </div>
                         </div>
                     </div>

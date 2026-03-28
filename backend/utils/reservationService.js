@@ -22,6 +22,34 @@ const STATUS_TO_PROGRESS = {
 
 const ACTIVE_RESERVATION_STATUSES = ['pending', 'charging_25', 'charging_50', 'charging_75', 'completed'];
 const EXPIRED_PENDING_STATUS = 'missed';
+const KNOWN_STATION_COORDINATE_FIXES = {
+    marsa: {
+        latitude: 36.87818,
+        longitude: 10.32466,
+    },
+};
+
+const normalizeStationCoordinates = (station) => {
+    if (!station) {
+        return station;
+    }
+
+    const stationName = typeof station.name === 'string' ? station.name.toLowerCase() : '';
+    const matchedFix = Object.entries(KNOWN_STATION_COORDINATE_FIXES).find(([key]) =>
+        stationName.includes(key)
+    );
+
+    if (!matchedFix) {
+        return station;
+    }
+
+    const [, fixedCoordinates] = matchedFix;
+    return {
+        ...station,
+        latitude: fixedCoordinates.latitude,
+        longitude: fixedCoordinates.longitude,
+    };
+};
 
 const parseReservationDateTime = (date_reserve, heur_reserve) => {
     const timeValue =
@@ -78,7 +106,7 @@ const finalizeExpiredPendingRows = async (rows) => {
 };
 
 const fetchReservationsByCarIdentifier = async (carIdentifier) => {
-    return pool.query(
+    const result = await pool.query(
         `SELECT r.id, r.car_id, r.station_id, r.date_reserve, r.heur_reserve, r.created_at, r.charging_status AS status,
                 CASE r.charging_status
                     WHEN 'pending' THEN 0
@@ -100,6 +128,11 @@ const fetchReservationsByCarIdentifier = async (carIdentifier) => {
          ORDER BY r.date_reserve DESC, r.heur_reserve DESC`,
         [carIdentifier, ACTIVE_STATUSES]
     );
+
+    return {
+        ...result,
+        rows: result.rows.map(normalizeStationCoordinates),
+    };
 };
 
 const fetchInvoicesByCarIdentifier = async (carIdentifier) => {
@@ -130,7 +163,7 @@ const getAllStations = async () => {
         const result = await pool.query(
             'SELECT id, name, latitude, longitude, charging_speed_kw, average_duration_hours, tariff, capacity FROM stations ORDER BY name'
         );
-        return result.rows;
+        return result.rows.map(normalizeStationCoordinates);
     } catch (error) {
         console.error('Error fetching stations:', error);
         throw error;
@@ -146,7 +179,7 @@ const getStationById = async (stationId) => {
             'SELECT * FROM stations WHERE id = $1::uuid',
             [stationId]
         );
-        return result.rows[0];
+        return normalizeStationCoordinates(result.rows[0]);
     } catch (error) {
         console.error('Error fetching station:', error);
         throw error;
@@ -371,7 +404,7 @@ const getReservationsByCarId = async (carId) => {
         const result = await fetchReservationsByCarIdentifier(carId);
 
         console.log(`[RESERVATIONS] Found ${result.rows.length} reservations`);
-        return finalizeExpiredPendingRows(result.rows);
+        return finalizeExpiredPendingRows(result.rows).map(normalizeStationCoordinates);
     } catch (error) {
         console.error('Error fetching reservations:', error);
         throw error;
@@ -402,7 +435,7 @@ const getReservationById = async (reservationId) => {
             [reservationId]
         );
         const rows = await finalizeExpiredPendingRows(result.rows);
-        return rows[0];
+        return normalizeStationCoordinates(rows[0]);
     } catch (error) {
         console.error('Error fetching reservation:', error);
         throw error;

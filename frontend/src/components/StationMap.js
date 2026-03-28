@@ -6,6 +6,7 @@ import { calculateDistance, formatDistance, getBearing } from '../utils/Geoutils
 
 const DEFAULT_CENTER = [35.2975, 9.8744];
 const DEFAULT_ZOOM = 10;
+const LIGHT_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const ROUTE_MODES = {
     driving: 'driving',
     walking: 'walking',
@@ -494,7 +495,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 zoomControl: true,
             }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer(LIGHT_TILE_URL, {
                 attribution: '&copy; OpenStreetMap contributors',
                 maxZoom: 19,
             }).addTo(mapInstanceRef.current);

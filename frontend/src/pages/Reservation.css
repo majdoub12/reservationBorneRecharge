@@ -1,7 +1,11 @@
 .reservation-page {
     width: 100%;
     min-height: 100vh;
-    padding: 20px;
+    padding: 24px;
+    background:
+        radial-gradient(circle at top left, rgba(45, 225, 252, 0.12), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(141, 247, 255, 0.08), transparent 20%),
+        linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
 }
 
 .reservation-layout {
@@ -16,49 +20,130 @@
 .reservation-content {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
+    min-width: 0;
 }
 
-/* DIV 1: Map + List */
+.reservation-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    padding: 22px 24px;
+    border-radius: 22px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--surface-border);
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(14px);
+}
+
+.hero-copy {
+    max-width: 760px;
+}
+
+.hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.1);
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+}
+
+.hero-copy h1 {
+    margin: 12px 0 10px;
+    color: var(--text-primary);
+    font-size: 30px;
+    line-height: 1.15;
+    letter-spacing: -0.7px;
+}
+
+.hero-copy p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 58rem;
+}
+
+.hero-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.hero-pill {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--surface-border);
+    background: var(--surface-muted);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.hero-pill.active {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+}
+
+/* Main reservation surface */
 .div-1 {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    height: 68vh;
-    min-height: 620px;
+    background: var(--surface-elevated);
+    border-radius: 24px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    overflow: visible;
+    border: 1px solid var(--surface-border);
 }
 
 .map-list-wrapper {
     display: flex;
-    height: 100%;
-    gap: 0;
+    flex-direction: column;
+    gap: 18px;
     min-height: 0;
-}
-
-.list-section {
-    width: 35%;
-    min-width: 250px;
-    overflow-y: auto;
-    min-height: 0;
+    padding: 18px;
 }
 
 .map-section {
-    flex: 1;
-    min-width: 400px;
+    min-width: 0;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
     display: flex;
+    background: linear-gradient(180deg, var(--surface-elevated), var(--surface-muted));
+    border-radius: 22px;
+    border: 1px solid var(--surface-border);
+    overflow: visible;
+}
+
+.map-section > * {
+    width: 100%;
+}
+
+.list-section {
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+    min-height: 0;
 }
 
 .loading-section {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100%;
-    color: #999;
+    min-height: 180px;
+    color: var(--text-secondary);
     font-size: 14px;
+    background: var(--surface-muted);
+    border-radius: 20px;
+    border: 1px dashed var(--surface-border);
 }
 
 .loading-message {
@@ -66,7 +151,7 @@
     align-items: center;
     justify-content: center;
     min-height: 200px;
-    color: #666;
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
@@ -96,14 +181,14 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    background: #ffebee;
-    border: 2px solid #ef5350;
-    border-radius: 8px;
-    padding: 15px;
-    color: #c62828;
+    background: rgba(255, 122, 89, 0.12);
+    border: 1px solid rgba(255, 122, 89, 0.22);
+    border-radius: 16px;
+    padding: 15px 16px;
+    color: var(--warning);
     font-size: 14px;
     animation: slideDown 0.3s ease-in;
-    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2);
+    box-shadow: 0 10px 24px rgba(244, 63, 94, 0.12);
 }
 
 @keyframes slideDown {
@@ -124,78 +209,90 @@
 
 .error-close {
     margin-left: auto;
-    background: none;
-    border: none;
+    background: var(--surface-muted);
+    border: 1px solid var(--surface-border);
     font-size: 20px;
     cursor: pointer;
-    color: #c62828;
+    color: var(--warning);
     padding: 0;
     width: 30px;
     height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    transition: background 0.3s ease;
+    border-radius: 999px;
+    transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .error-close:hover {
-    background: rgba(198, 40, 40, 0.1);
+    background: rgba(255, 122, 89, 0.14);
+    transform: translateY(-1px);
 }
 
 /* Responsive Design */
-@media (max-width: 1024px) {
-    .div-1 {
-        height: 60vh;
-        min-height: 520px;
+@media (max-width: 1200px) {
+    .reservation-layout {
+        grid-template-columns: 220px minmax(0, 1fr);
     }
 
-    .list-section {
-        width: 40%;
+    .hero-copy h1 {
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .reservation-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .hero-pills {
+        justify-content: flex-start;
     }
 }
 
 @media (max-width: 768px) {
     .reservation-page {
-        padding: 10px;
+        padding: 12px;
     }
 
     .reservation-layout {
         grid-template-columns: 1fr;
     }
 
-    .map-list-wrapper {
-        flex-direction: column;
+    .reservation-content {
+        gap: 14px;
     }
 
-    .list-section {
-        width: 100%;
-        height: 300px;
-        min-width: unset;
-        border-bottom: 1px solid #e0e0e0;
+    .reservation-hero {
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .hero-copy h1 {
+        font-size: 24px;
+    }
+
+    .map-list-wrapper {
+        padding: 14px;
     }
 
     .map-section {
-        width: 100%;
-        min-width: unset;
-        height: 300px;
-        overflow: visible;
-    }
-
-    .div-1 {
-        height: auto;
-        min-height: unset;
+        min-height: 420px;
     }
 }
 
 @media (max-width: 600px) {
     .reservation-page {
-        padding: 5px;
+        padding: 8px;
     }
 
-    .list-section,
-    .map-section {
-        height: 250px;
+    .hero-copy h1 {
+        font-size: 22px;
+    }
+
+    .hero-copy p {
+        font-size: 13px;
     }
 
     .error-message {
