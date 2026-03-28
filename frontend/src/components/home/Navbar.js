@@ -17,7 +17,6 @@ const Navbar = ({ onReserve }) => {
                 "Tesla Charge"),
             React.createElement("div", { className: "hidden md:flex items-center gap-2" },
                 React.createElement(Button, { variant: "ghost", className: "text-muted-foreground hover:text-foreground", onClick: () => { var _a; return (_a = document.getElementById("features")) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: "smooth" }); } }, "Experience"),
-                React.createElement(Button, { variant: "ghost", className: "text-muted-foreground hover:text-foreground", onClick: () => { var _a; return (_a = document.getElementById("flow")) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: "smooth" }); } }, "How it works"),
                 React.createElement(Button, { variant: "nav", size: "default", onClick: onReserve },
                     React.createElement(Zap, { className: "w-4 h-4" }),
                     "Reserve Now")),
