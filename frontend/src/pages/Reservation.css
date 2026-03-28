@@ -25,25 +25,31 @@
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    height: 500px;
+    height: 68vh;
+    min-height: 620px;
 }
 
 .map-list-wrapper {
     display: flex;
     height: 100%;
     gap: 0;
+    min-height: 0;
 }
 
 .list-section {
     width: 35%;
     min-width: 250px;
     overflow-y: auto;
+    min-height: 0;
 }
 
 .map-section {
     flex: 1;
     min-width: 400px;
-    overflow: hidden;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
 }
 
 .loading-section {
@@ -140,7 +146,8 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
     .div-1 {
-        height: 400px;
+        height: 60vh;
+        min-height: 520px;
     }
 
     .list-section {
@@ -172,10 +179,12 @@
         width: 100%;
         min-width: unset;
         height: 300px;
+        overflow: visible;
     }
 
     .div-1 {
         height: auto;
+        min-height: unset;
     }
 }
 
