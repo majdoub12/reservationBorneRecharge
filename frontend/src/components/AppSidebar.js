@@ -68,8 +68,10 @@ const AppSidebar = () => {
                 role="button"
                 tabIndex={0}
             >
-                <span className="app-sidebar-mark" />
-                <div>
+                <div className="app-sidebar-logo-wrap" aria-hidden="true">
+                    <img className="app-sidebar-logo" src="/Tesla.png" alt="" />
+                </div>
+                <div className="app-sidebar-brand-copy">
                     <strong>Tesla Charge</strong>
                     <span>Driver workspace</span>
                 </div>

@@ -404,7 +404,8 @@ const getReservationsByCarId = async (carId) => {
         const result = await fetchReservationsByCarIdentifier(carId);
 
         console.log(`[RESERVATIONS] Found ${result.rows.length} reservations`);
-        return finalizeExpiredPendingRows(result.rows).map(normalizeStationCoordinates);
+        const rows = await finalizeExpiredPendingRows(result.rows);
+        return rows.map(normalizeStationCoordinates);
     } catch (error) {
         console.error('Error fetching reservations:', error);
         throw error;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import './styles/TimeSlotSelector.css';
 import * as reservationService from '../services/reservationService_frontend';
 
@@ -9,42 +9,64 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [error, setError] = useState(null);
 
-    // Fetch slots when date or station changes
     useEffect(() => {
-        if (!selectedStation) return;
+        if (!selectedStation) return undefined;
+
+        let cancelled = false;
 
         const fetchSlots = async () => {
             setLoadingSlots(true);
             setError(null);
+
             try {
                 const slotsData = await reservationService.getSlotsByStation(
                     selectedStation.id,
                     selectedDate
                 );
-                setSlots(slotsData || []);
+
+                if (!cancelled) {
+                    setSlots(Array.isArray(slotsData) ? slotsData : []);
+                }
             } catch (err) {
-                setError('Erreur lors du chargement des créneaux');
-                console.error(err);
-                setSlots([]);
+                if (!cancelled) {
+                    setError('Error loading available slots');
+                    setSlots([]);
+                    console.error(err);
+                }
             } finally {
-                setLoadingSlots(false);
+                if (!cancelled) {
+                    setLoadingSlots(false);
+                }
             }
         };
 
         fetchSlots();
+
+        return () => {
+            cancelled = true;
+        };
     }, [selectedStation, selectedDate]);
 
     const handleDateChange = (e) => {
-        setSelectedDate(new Date(e.target.value));
-        setSelectedSlot(null); // Reset selected slot when date changes
+        const [year, month, day] = e.target.value.split('-').map(Number);
+        setSelectedDate(new Date(year, month - 1, day));
+        setSelectedSlot(null);
     };
 
     const formatDate = (date) => {
-        return date.toISOString().split('T')[0];
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     const isPastSlot = (slot) => {
-        const slotDateTime = new Date(`${slot.date_reserve}T${slot.heur_reserve.substring(0, 8)}`);
+        const slotTime = String(slot?.heur_reserve || '').substring(0, 8);
+        const slotDateTime = new Date(`${slot.date_reserve}T${slotTime}`);
         return !Number.isNaN(slotDateTime.getTime()) && slotDateTime < new Date();
     };
 
@@ -54,7 +76,7 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
     return (
         <div className="time-slot-selector">
             <div className="selector-header">
-                <h3>Sélectionner Créneau Horaire</h3>
+                <h3>Select a time slot</h3>
                 {selectedStation && (
                     <p className="selected-station">
                         Station: <strong>{selectedStation.name}</strong>
@@ -64,13 +86,13 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
 
             {!selectedStation ? (
                 <div className="no-station-selected">
-                    <p>Veuillez sélectionner une station d'abord</p>
+                    <p>Please select a station first</p>
                 </div>
             ) : (
                 <>
                     <div className="date-picker-section">
                         <label htmlFor="date-input" className="date-label">
-                            Choisir une Date:
+                            Choose a date:
                         </label>
                         <input
                             id="date-input"
@@ -84,41 +106,47 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
 
                     <div className="slots-section">
                         <h4 className="slots-title">
-                            Créneaux disponibles le {selectedDate.toLocaleDateString('fr-FR')}
+                            Available slots for {selectedDate.toLocaleDateString('en-GB')}
                         </h4>
 
                         {loadingSlots ? (
-                            <div className="loading">Chargement des créneaux...</div>
+                            <div className="loading">Loading slots...</div>
                         ) : error ? (
                             <div className="error">{error}</div>
                         ) : slots.length === 0 ? (
                             <div className="no-slots">
-                                <p>Aucun créneau disponible pour cette date</p>
+                                <p>No slots available for this date</p>
                             </div>
                         ) : (
                             <div className="slot-dropdown-wrapper">
                                 <select
                                     value={selectedSlot?.heur_reserve || ''}
-                                    onChange={(e) => {
-                                        const chosenTime = e.target.value;
-                                        const slot = slots.find(s => s.heur_reserve === chosenTime);
+                                    onChange={(event) => {
+                                        const chosenTime = event.target.value;
+                                        const slot = slots.find((item) => item.heur_reserve === chosenTime);
+
                                         if (slot?.available && !isPastSlot(slot)) {
                                             setSelectedSlot(slot);
-                                            if (onSlotSelected) onSlotSelected(slot, selectedDate);
+                                            if (onSlotSelected) {
+                                                onSlotSelected(slot, selectedDate);
+                                            }
                                         }
                                     }}
                                     className="slot-dropdown"
                                 >
                                     <option value="" disabled>
-                                        Choisissez un créneau horaire
+                                        Choose a time slot
                                     </option>
-                                    {slots.map(slot => (
+                                    {slots.map((slot) => (
                                         <option
                                             key={slot.id}
                                             value={slot.heur_reserve}
                                             disabled={!slot.available || isPastSlot(slot)}
                                         >
-                                            {slot.heur_reserve.substring(0, 5)} - {!slot.available || isPastSlot(slot) ? 'Indisponible' : `${slot.available_places} place(s)`}
+                                            {String(slot.heur_reserve || '').substring(0, 5)} -{' '}
+                                            {!slot.available || isPastSlot(slot)
+                                                ? 'Unavailable'
+                                                : `${slot.available_places} spots`}
                                         </option>
                                     ))}
                                 </select>
@@ -128,7 +156,7 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
 
                     {selectedSlot && (
                         <div className="slot-summary">
-                            <h4>Résumé de la Réservation</h4>
+                            <h4>Reservation summary</h4>
                             <div className="summary-item">
                                 <span className="summary-label">Station:</span>
                                 <span className="summary-value">{selectedStation.name}</span>
@@ -136,17 +164,17 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
                             <div className="summary-item">
                                 <span className="summary-label">Date:</span>
                                 <span className="summary-value">
-                                    {selectedDate.toLocaleDateString('fr-FR')}
+                                    {selectedDate.toLocaleDateString('en-GB')}
                                 </span>
                             </div>
                             <div className="summary-item">
-                                <span className="summary-label">Heure:</span>
+                                <span className="summary-label">Time:</span>
                                 <span className="summary-value">
-                                    {selectedSlot.heur_reserve.substring(0, 5)}
+                                    {String(selectedSlot.heur_reserve || '').substring(0, 5)}
                                 </span>
                             </div>
                             <div className="summary-item">
-                                <span className="summary-label">Tarif:</span>
+                                <span className="summary-label">Tariff:</span>
                                 <span className="summary-value">
                                     {Number(selectedStation.tariff).toFixed(2)} TND
                                 </span>
@@ -161,7 +189,7 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
                                     }
                                 }}
                             >
-                                {loading ? 'Confirmation en cours...' : 'Confirmer la Réservation'}
+                                {loading ? 'Confirming...' : 'Confirm reservation'}
                             </button>
                         </div>
                     )}

@@ -2,10 +2,49 @@
     min-height: 100vh;
     padding: 24px;
     background:
-        radial-gradient(circle at top left, rgba(45, 225, 252, 0.1), transparent 26%),
-        radial-gradient(circle at top right, rgba(107, 231, 200, 0.08), transparent 26%),
-        linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        radial-gradient(circle at top left, rgba(20, 184, 166, 0.1), transparent 26%),
+        radial-gradient(circle at top right, rgba(45, 212, 191, 0.08), transparent 26%),
+        linear-gradient(180deg, #0b0f14 0%, #111827 100%);
     color: var(--text-primary);
+    --bg-primary: #0b0f14;
+    --bg-secondary: #111827;
+    --surface-elevated: rgba(17, 24, 39, 0.96);
+    --surface-muted: #0f172a;
+    --surface-border: rgba(148, 163, 184, 0.14);
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --accent-strong: #14b8a6;
+    --accent: #a7f3d0;
+    --accent-soft: rgba(20, 184, 166, 0.1);
+    --sidebar-bg: rgba(15, 23, 42, 0.84);
+    --sidebar-border: rgba(148, 163, 184, 0.14);
+    --sidebar-text: #f8fafc;
+    --sidebar-hover: rgba(20, 184, 166, 0.08);
+    --sidebar-chip-bg: rgba(255, 255, 255, 0.04);
+    --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.34);
+}
+
+:root[data-theme="light"] .charging-visualization-page {
+    background:
+        radial-gradient(circle at top left, rgba(20, 184, 166, 0.08), transparent 26%),
+        radial-gradient(circle at top right, rgba(45, 212, 191, 0.06), transparent 26%),
+        linear-gradient(180deg, #f4f7fb 0%, #eef3f8 100%);
+    --bg-primary: #f4f7fb;
+    --bg-secondary: #eef3f8;
+    --surface-elevated: rgba(255, 255, 255, 0.9);
+    --surface-muted: #f5f7fb;
+    --surface-border: rgba(15, 23, 42, 0.08);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --accent-strong: #14b8a6;
+    --accent: #14b8a6;
+    --sidebar-bg: rgba(255, 255, 255, 0.88);
+    --sidebar-border: rgba(15, 23, 42, 0.08);
+    --sidebar-text: #0f172a;
+    --sidebar-chip-bg: rgba(15, 23, 42, 0.04);
+    --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
 }
 
 .charging-layout {
@@ -96,11 +135,11 @@
 }
 
 .dashboard-alert.error {
-    background: rgba(255, 122, 89, 0.16);
+    background: rgba(20, 184, 166, 0.08);
 }
 
 .dashboard-alert.success {
-    background: rgba(107, 231, 200, 0.14);
+    background: rgba(20, 184, 166, 0.1);
 }
 
 .hero-panel {
@@ -110,8 +149,8 @@
     padding: 26px 28px;
     border-radius: var(--radius-lg);
     background:
-        linear-gradient(135deg, var(--surface-elevated), rgba(8, 22, 31, 0.96)),
-        linear-gradient(120deg, rgba(45, 225, 252, 0.12), transparent 32%);
+        linear-gradient(135deg, var(--surface-elevated), rgba(17, 24, 39, 0.98)),
+        linear-gradient(120deg, rgba(20, 184, 166, 0.1), transparent 32%);
     border: 1px solid var(--surface-border);
     box-shadow: var(--shadow-soft);
 }
@@ -193,9 +232,15 @@
     padding: 16px;
     border-radius: 28px;
     background:
-        radial-gradient(circle at top, rgba(45, 225, 252, 0.14), transparent 56%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+        radial-gradient(circle at top, rgba(20, 184, 166, 0.1), transparent 56%),
+        linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(15, 23, 42, 0.92));
     border: 1px solid var(--surface-border);
+}
+
+:root[data-theme="light"] .car-model-image-frame {
+    background:
+        radial-gradient(circle at top, rgba(20, 184, 166, 0.08), transparent 56%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 248, 251, 0.96));
 }
 
 .car-model-image {
@@ -203,6 +248,10 @@
     height: auto;
     display: block;
     filter: drop-shadow(0 22px 28px rgba(0, 0, 0, 0.26));
+}
+
+:root[data-theme="light"] .car-model-image {
+    filter: drop-shadow(0 18px 24px rgba(15, 23, 42, 0.12));
 }
 
 .car-model-details {
@@ -321,9 +370,9 @@
     font-weight: 800;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-    background: linear-gradient(135deg, var(--accent-strong), #28b8a6);
+    background: linear-gradient(135deg, var(--accent-strong), #0f766e);
     color: white;
-    box-shadow: 0 16px 30px rgba(45, 225, 252, 0.18);
+    box-shadow: 0 16px 30px rgba(20, 184, 166, 0.18);
 }
 
 .start-button:hover,

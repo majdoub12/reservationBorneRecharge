@@ -24,13 +24,14 @@ const ConfirmationModal = ({ isOpen, reservation, onClose, onConfirm }) => {
     };
 
     const handleCopyToClipboard = () => {
-        const text = `
-Réservation Confirmée
-Station: ${reservation.stationName}
-Véhicule: ${reservation.vehicleMatricule}
-Date et Heure: ${formatReservationSlot(reservation.dateTime)}
-Tarif: ${reservation.tariff} TND
-        `;
+        const text = [
+            'Reservation confirmed',
+            `Station: ${reservation.stationName || '-'}`,
+            `Vehicle: ${reservation.vehicleMatricule || '-'}`,
+            `Date and time: ${formatReservationSlot(reservation.dateTime)}`,
+            `Tariff: ${reservation.tariff} TND`,
+        ].join('\n');
+
         navigator.clipboard.writeText(text);
         setCopying(true);
         setTimeout(() => setCopying(false), 2000);
@@ -38,10 +39,14 @@ Tarif: ${reservation.tariff} TND
 
     const handlePrintQR = () => {
         const printWindow = window.open('', '', 'width=600,height=400');
+        if (!printWindow) {
+            return;
+        }
+
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>QR Code Réservation</title>
+                    <title>Reservation QR Code</title>
                     <style>
                         body {
                             display: flex;
@@ -51,19 +56,19 @@ Tarif: ${reservation.tariff} TND
                             font-family: Arial, sans-serif;
                             padding: 20px;
                         }
-                        h1 { color: #007bff; }
+                        h1 { color: #e82127; }
                         .info { margin: 20px 0; font-size: 14px; }
                         img { max-width: 400px; }
                     </style>
                 </head>
                 <body>
-                    <h1>Votre QR Code de Réservation</h1>
-                    <img src="${reservation.qrCode}" />
+                    <h1>Your reservation QR code</h1>
+                    <img src="${reservation.qrCode}" alt="Reservation QR code" />
                     <div class="info">
-                        <p><strong>Station:</strong> ${reservation.stationName}</p>
-                        <p><strong>Véhicule:</strong> ${reservation.vehicleMatricule}</p>
-                        <p><strong>Date/Heure:</strong> ${formatReservationSlot(reservation.dateTime)}</p>
-                        <p><strong>Tarif:</strong> ${reservation.tariff} TND</p>
+                        <p><strong>Station:</strong> ${reservation.stationName || '-'}</p>
+                        <p><strong>Vehicle:</strong> ${reservation.vehicleMatricule || '-'}</p>
+                        <p><strong>Date/time:</strong> ${formatReservationSlot(reservation.dateTime)}</p>
+                        <p><strong>Tariff:</strong> ${reservation.tariff} TND</p>
                     </div>
                 </body>
             </html>
@@ -75,33 +80,33 @@ Tarif: ${reservation.tariff} TND
     const handleDownloadQR = () => {
         const link = document.createElement('a');
         link.href = reservation.qrCode;
-        link.download = `qr-code-${reservation.id}.png`;
+        link.download = `qr-code-${reservation.id || 'reservation'}.png`;
         link.click();
     };
 
     return (
         <div className="confirmation-modal-overlay" onClick={onClose}>
             <div className="confirmation-modal" onClick={(e) => e.stopPropagation()}>
-                <button className="close-button" onClick={onClose}>×</button>
+                <button className="close-button" onClick={onClose}>x</button>
 
                 <div className="modal-header">
-                    <h2>✓ Réservation Confirmée!</h2>
+                    <h2>Reservation confirmed</h2>
                     <p className="confirmation-message">
-                        Votre réservation a été créée avec succès
+                        Your reservation has been created successfully.
                     </p>
                 </div>
 
                 <div className="modal-content">
                     <div className="qr-code-section">
-                        <h3>Votre Code QR</h3>
+                        <h3>Your QR code</h3>
                         <p className="qr-instruction">
-                            Présentez ce code à la station pour un service plus rapide
+                            Present this code at the station for a faster check-in.
                         </p>
                         {reservation.qrCode && (
                             <div className="qr-code-container">
                                 <img
                                     src={reservation.qrCode}
-                                    alt="QR Code de réservation"
+                                    alt="Reservation QR code"
                                     className="qr-code-image"
                                 />
                             </div>
@@ -109,32 +114,32 @@ Tarif: ${reservation.tariff} TND
                     </div>
 
                     <div className="reservation-details">
-                        <h3>Détails de la Réservation</h3>
+                        <h3>Reservation details</h3>
                         <div className="detail-item">
-                            <span className="detail-label">Référence:</span>
-                            <span className="detail-value">{reservation.id.substring(0, 8).toUpperCase()}</span>
+                            <span className="detail-label">Reference:</span>
+                            <span className="detail-value">{String(reservation.id || '').substring(0, 8).toUpperCase()}</span>
                         </div>
                         <div className="detail-item">
                             <span className="detail-label">Station:</span>
-                            <span className="detail-value">{reservation.stationName}</span>
+                            <span className="detail-value">{reservation.stationName || '-'}</span>
                         </div>
                         <div className="detail-item">
-                            <span className="detail-label">Véhicule:</span>
-                            <span className="detail-value">{reservation.vehicleMatricule}</span>
+                            <span className="detail-label">Vehicle:</span>
+                            <span className="detail-value">{reservation.vehicleMatricule || '-'}</span>
                         </div>
                         <div className="detail-item">
-                            <span className="detail-label">Date & Heure:</span>
+                            <span className="detail-label">Date & time:</span>
                             <span className="detail-value">
                                 {formatReservationSlot(reservation.dateTime)}
                             </span>
                         </div>
                         <div className="detail-item highlight">
-                            <span className="detail-label">Tarif:</span>
+                            <span className="detail-label">Tariff:</span>
                             <span className="detail-value">{reservation.tariff} TND</span>
                         </div>
                         <div className="detail-item">
                             <span className="detail-label">Status:</span>
-                            <span className="detail-value status-pending">En attente</span>
+                            <span className="detail-value status-pending">Pending</span>
                         </div>
                     </div>
 
@@ -142,32 +147,32 @@ Tarif: ${reservation.tariff} TND
                         <button
                             className="btn btn-print"
                             onClick={handlePrintQR}
-                            title="Imprimer le QR Code"
+                            title="Print QR code"
                         >
-                            🖨️ Imprimer
+                            Print
                         </button>
                         <button
                             className="btn btn-download"
                             onClick={handleDownloadQR}
-                            title="Télécharger le QR Code"
+                            title="Download QR code"
                         >
-                            ⬇️ Télécharger
+                            Download
                         </button>
                         <button
                             className={`btn btn-copy ${copying ? 'copied' : ''}`}
                             onClick={handleCopyToClipboard}
                         >
-                            {copying ? '✓ Copié!' : '📋 Copier'}
+                            {copying ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
 
                     <div className="info-box">
-                        <h4>📌 Instructions Importantes:</h4>
+                        <h4>Important notes</h4>
                         <ul>
-                            <li>Présentez ce QR Code à la station à votre heure de réservation</li>
-                            <li>Arrivez 5-10 minutes avant l'heure prévue</li>
-                            <li>Le paiement se fera à 75% de charge de la batterie</li>
-                            <li>Consultez "Historique des Réservations" pour plus de détails</li>
+                            <li>Present the QR code at the station at your reservation time.</li>
+                            <li>Arrive 5 to 10 minutes early.</li>
+                            <li>Payment is processed at 75 percent battery charge.</li>
+                            <li>Check reservation history for more details.</li>
                         </ul>
                     </div>
                 </div>
@@ -177,13 +182,13 @@ Tarif: ${reservation.tariff} TND
                         className="btn btn-secondary"
                         onClick={onClose}
                     >
-                        Fermer
+                        Close
                     </button>
                     <button
                         className="btn btn-primary"
                         onClick={onConfirm}
                     >
-                        ✓ Confirmer & Continuer
+                        Confirm and continue
                     </button>
                 </div>
             </div>

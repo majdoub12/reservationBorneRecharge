@@ -64,6 +64,41 @@ async function dispatchOTP(contact, otpCode) {
   }
 }
 
+async function issueForeignOTP(vehicleId, email, phone) {
+  await pool.query(
+    'UPDATE otps SET expired = true WHERE vehicle_id = $1 AND is_used = false',
+    [vehicleId]
+  );
+
+  const otpCode = generateOTP();
+  await pool.query(
+    'INSERT INTO otps (vehicle_id, code, expired, is_used) VALUES ($1, $2, false, false)',
+    [vehicleId, otpCode]
+  );
+
+  console.log(`[OTP] Issued foreign OTP for vehicle=${vehicleId}`);
+
+  const deliveryErrors = [];
+
+  try {
+    await dispatchOTP({ type: 'email', value: email }, otpCode);
+  } catch (e) {
+    deliveryErrors.push(`email: ${e.message}`);
+    console.warn('Email OTP send failed:', e.message);
+  }
+
+  if (phone) {
+    try {
+      await dispatchOTP({ type: 'phone', value: phone }, otpCode);
+    } catch (e) {
+      deliveryErrors.push(`whatsapp: ${e.message}`);
+      console.warn('WhatsApp send failed:', e.message);
+    }
+  }
+
+  return { otpCode, deliveryErrors };
+}
+
 async function ensureForeignVehicleContacts(vehicleId, email, phone) {
   if (email) {
     const existingEmail = await pool.query(
@@ -342,6 +377,20 @@ exports.foreignAuth = async (req, res) => {
         status: existingVehicle.is_temporary ? 'pending' : 'approved'
       });
 
+      if (!existingVehicle.is_temporary) {
+        const { deliveryErrors } = await issueForeignOTP(existingVehicle.id, email, phone);
+
+        return res.json({
+          message: existingMessage,
+          vehicleId: existingVehicle.id,
+          existing: true,
+          status: existingStatus,
+          is_foreign: existingVehicle.is_foreign,
+          is_temporary: existingVehicle.is_temporary,
+          deliveryWarnings: deliveryErrors
+        });
+      }
+
       return res.json({
         message: existingMessage,
         vehicleId: existingVehicle.id,
@@ -459,31 +508,13 @@ exports.foreignApprove = async (req, res) => {
       status: 'approved'
     });
 
-    // Clean up old OTPs for this vehicle
-    await pool.query(
-      'UPDATE otps SET expired = true WHERE vehicle_id = $1 AND is_used = false',
-      [vehicle.id]
-    );
-
-    const otpCode = generateOTP();
-    await pool.query(
-      'INSERT INTO otps (vehicle_id, code, expired, is_used) VALUES ($1, $2, false, false)',
-      [vehicle.id, otpCode]
-    );
-
-    await dispatchOTP({ type: 'email', value: email }, otpCode);
-    if (phone) {
-      try {
-        await dispatchOTP({ type: 'phone', value: phone }, otpCode);
-      } catch (e) {
-        console.warn('WhatsApp send failed, email OTP already sent:', e.message);
-      }
-    }
+    const { deliveryErrors } = await issueForeignOTP(vehicle.id, email, phone);
 
     res.send(`
       <div style="font-family:sans-serif;text-align:center;padding:3rem;">
         <h2 style="color:#1a7a4a;">Approved</h2>
-        <p>OTP has been sent to <strong>${email}</strong> and <strong>${phone}</strong>.</p>
+        <p>OTP has been sent to <strong>${email}</strong>${phone ? ` and <strong>${phone}</strong>` : ''}.</p>
+        ${deliveryErrors.length ? `<p style="color:#b45309;font-size:0.9rem;">Delivery warning: ${deliveryErrors.join(' | ')}</p>` : ''}
         <p style="color:#888;font-size:0.9rem;">You can close this tab.</p>
       </div>
     `);
@@ -716,7 +747,11 @@ exports.getContacts = async (req, res) => {
   if (!vehicleId) return res.status(400).json({ message: 'Vehicle ID required' });
 
   try {
-    const vehicleResult = await fetchVehicleIdentityById(vehicleId);
+    const vehicle = await fetchVehicleIdentityById(vehicleId);
+    if (!vehicle) {
+      return res.status(404).json({ message: 'Vehicle not found' });
+    }
+
     const emailResult = await pool.query('SELECT id, address AS value FROM emails WHERE vehicle_id=$1', [vehicleId]);
     const phoneResult = await pool.query('SELECT id, number AS value FROM telephones WHERE vehicle_id=$1', [vehicleId]);
 
@@ -724,13 +759,13 @@ exports.getContacts = async (req, res) => {
       ...emailResult.rows.map(r => ({ ...r, type: 'email' })),
       ...phoneResult.rows.map(r => ({ ...r, type: 'phone' }))
     ];
-    const vehicle = vehicleResult.rows[0];
+
     res.json({
       contacts,
       vehicleId,
-      plate: vehicleResult?.immatricul || null,
-      vin: vehicleResult?.vin || null,
-      model: vehicleResult?.model || null
+      plate: vehicle.immatricul || null,
+      vin: vehicle.vin || null,
+      model: vehicle.model || null
     });
   } catch (err) {
     console.error(err);

@@ -1,6 +1,44 @@
 .invoices-page {
   min-height: 100vh;
   padding: 20px;
+  --bg-primary: #0b0f14;
+  --bg-secondary: #111827;
+  --surface-elevated: rgba(17, 24, 39, 0.96);
+  --surface-muted: #0f172a;
+  --surface-border: rgba(148, 163, 184, 0.14);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --accent: #a7f3d0;
+  --accent-strong: #14b8a6;
+  --sidebar-bg: rgba(15, 23, 42, 0.84);
+  --sidebar-border: rgba(148, 163, 184, 0.14);
+  --sidebar-text: #f8fafc;
+  --sidebar-hover: rgba(20, 184, 166, 0.08);
+  --sidebar-chip-bg: rgba(255, 255, 255, 0.04);
+  --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.34);
+  background:
+    radial-gradient(circle at top left, rgba(20, 184, 166, 0.1), transparent 28%),
+    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  color: var(--text-primary);
+}
+
+:root[data-theme="light"] .invoices-page {
+  --bg-primary: #f4f7fb;
+  --bg-secondary: #eef3f8;
+  --surface-elevated: rgba(255, 255, 255, 0.9);
+  --surface-muted: #f5f7fb;
+  --surface-border: rgba(15, 23, 42, 0.08);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --accent: #14b8a6;
+  --accent-strong: #0f766e;
+  --sidebar-bg: rgba(255, 255, 255, 0.88);
+  --sidebar-border: rgba(15, 23, 42, 0.08);
+  --sidebar-text: #0f172a;
+  --sidebar-chip-bg: rgba(15, 23, 42, 0.04);
+  --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
 }
 
 .invoices-layout {
@@ -66,12 +104,12 @@
   gap: 18px;
   align-items: center;
   padding: 16px 18px;
-  color: #ff886e;
+  color: var(--accent-strong);
 }
 
 .invoices-error button {
   border: none;
-  background: rgba(255, 122, 89, 0.12);
+  background: rgba(20, 184, 166, 0.08);
   color: inherit;
   padding: 10px 14px;
   border-radius: 12px;
@@ -111,8 +149,8 @@
   padding: 8px 12px;
   font-size: 0.85rem;
   font-weight: 700;
-  background: rgba(154, 252, 168, 0.14);
-  color: #53b464;
+  background: rgba(20, 184, 166, 0.12);
+  color: #0f766e;
 }
 
 .invoice-amount {
@@ -127,7 +165,7 @@
   padding: 11px 16px;
   font-weight: 700;
   cursor: pointer;
-  background: linear-gradient(135deg, #12313d, #0b8160);
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
   color: #ffffff;
 }
 

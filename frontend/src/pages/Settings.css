@@ -1,6 +1,46 @@
 .settings-page {
   min-height: 100vh;
   padding: 20px;
+  --bg-primary: #0b0f14;
+  --bg-secondary: #111827;
+  --surface-elevated: rgba(17, 24, 39, 0.96);
+  --surface-muted: #0f172a;
+  --surface-border: rgba(148, 163, 184, 0.14);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --accent: #a7f3d0;
+  --accent-strong: #14b8a6;
+  --success: #14b8a6;
+  --sidebar-bg: rgba(15, 23, 42, 0.84);
+  --sidebar-border: rgba(148, 163, 184, 0.14);
+  --sidebar-text: #f8fafc;
+  --sidebar-hover: rgba(20, 184, 166, 0.08);
+  --sidebar-chip-bg: rgba(255, 255, 255, 0.04);
+  --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.34);
+  background:
+    radial-gradient(circle at top left, rgba(20, 184, 166, 0.1), transparent 28%),
+    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  color: var(--text-primary);
+}
+
+:root[data-theme="light"] .settings-page {
+  --bg-primary: #f4f7fb;
+  --bg-secondary: #eef3f8;
+  --surface-elevated: rgba(255, 255, 255, 0.9);
+  --surface-muted: #f5f7fb;
+  --surface-border: rgba(15, 23, 42, 0.08);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --accent: #14b8a6;
+  --accent-strong: #0f766e;
+  --success: #0f766e;
+  --sidebar-bg: rgba(255, 255, 255, 0.88);
+  --sidebar-border: rgba(15, 23, 42, 0.08);
+  --sidebar-text: #0f172a;
+  --sidebar-chip-bg: rgba(15, 23, 42, 0.04);
+  --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
 }
 
 .settings-layout {
@@ -51,11 +91,11 @@
 }
 
 .settings-error {
-  background: rgba(255, 122, 89, 0.12);
-  color: #ff886e;
+  background: rgba(20, 184, 166, 0.08);
+  color: var(--accent-strong);
   padding: 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 122, 89, 0.18);
+  border: 1px solid rgba(20, 184, 166, 0.18);
 }
 
 .settings-panel-header {
@@ -83,7 +123,7 @@
 }
 
 .theme-toggle button.active {
-  background: linear-gradient(135deg, #12313d, #0b8160);
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
   color: #fff;
 }
 
@@ -134,12 +174,12 @@
 
 .contact-badge.email {
   color: var(--accent);
-  background: rgba(45, 225, 252, 0.12);
+  background: rgba(20, 184, 166, 0.12);
 }
 
 .contact-badge.phone {
   color: var(--success);
-  background: rgba(154, 252, 168, 0.12);
+  background: rgba(20, 184, 166, 0.12);
 }
 
 .contact-value {
@@ -160,9 +200,9 @@
 }
 
 .btn-delete {
-  background: rgba(255, 122, 89, 0.12);
-  border: 1px solid rgba(255, 122, 89, 0.18);
-  color: #ffb3a1;
+  background: rgba(20, 184, 166, 0.08);
+  border: 1px solid rgba(20, 184, 166, 0.16);
+  color: #0f766e;
   min-width: 78px;
   height: 40px;
   border-radius: 12px;
@@ -172,7 +212,7 @@
   width: 100%;
   padding: 14px;
   background: var(--surface-muted);
-  border: 1px dashed rgba(141, 247, 255, 0.24);
+  border: 1px dashed rgba(20, 184, 166, 0.24);
   color: var(--text-primary);
   border-radius: 18px;
   margin-bottom: 20px;
@@ -204,9 +244,9 @@
 }
 
 .type-toggle button.active {
-  background: rgba(141, 247, 255, 0.12);
+  background: rgba(20, 184, 166, 0.1);
   color: var(--text-primary);
-  border-color: rgba(141, 247, 255, 0.32);
+  border-color: rgba(20, 184, 166, 0.24);
 }
 
 .input-group {
@@ -271,7 +311,7 @@
 .btn-add {
   flex: 2;
   padding: 12px;
-  background: linear-gradient(135deg, #effcff 0%, #9feeff 48%, #45daf9 100%);
+  background: linear-gradient(135deg, #e6fffb 0%, #bff7ef 48%, #34d399 100%);
   color: #07111f;
   border-radius: 12px;
 }
@@ -287,7 +327,7 @@
 .btn-finish {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #effcff 0%, #9feeff 48%, #45daf9 100%);
+  background: linear-gradient(135deg, #e6fffb 0%, #bff7ef 48%, #34d399 100%);
   color: #07111f;
   border-radius: 16px;
   font-size: 1rem;

@@ -26,8 +26,8 @@ const createMarkerIcon = (isSelected = false, isUserLocation = false) => {
         iconUrl: `data:image/svg+xml;base64,${btoa(`
             <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M16 0C9.4 0 4 5.4 4 12C4 20 16 40 16 40S28 20 28 12C28 5.4 22.6 0 16 0Z"
-                      fill="${isSelected ? '#2563eb' : '#16a34a'}"
-                      stroke="${isSelected ? '#1d4ed8' : '#166534'}"
+                      fill="${isSelected ? '#14b8a6' : '#475569'}"
+                      stroke="${isSelected ? '#115e59' : '#334155'}"
                       stroke-width="2"/>
                 <circle cx="16" cy="13" r="4" fill="white"/>
             </svg>
@@ -274,7 +274,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
 
             const routeCoordinates = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
             routeLayerRef.current = L.polyline(routeCoordinates, {
-                color: forcedMode === ROUTE_MODES.walking ? '#0f766e' : '#2563eb',
+                color: forcedMode === ROUTE_MODES.walking ? '#475569' : '#14b8a6',
                 weight: 5,
                 opacity: 0.9,
                 lineCap: 'round',
@@ -329,7 +329,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                     [destinationPoint.latitude, destinationPoint.longitude],
                 ],
                 {
-                    color: '#0f766e',
+                    color: '#14b8a6',
                     weight: 4,
                     opacity: 0.8,
                     dashArray: '8 10',

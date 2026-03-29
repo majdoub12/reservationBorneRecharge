@@ -121,7 +121,7 @@ const Reservation = () => {
         return (
             <div className="reservation-page">
                 <div className="loading-message">
-                    <p>Chargement des informations...</p>
+                    <p>Loading your vehicle profile...</p>
                 </div>
             </div>
         );
@@ -135,16 +135,16 @@ const Reservation = () => {
                 <div className="reservation-content">
                     <div className="reservation-hero">
                         <div className="hero-copy">
-                            <span className="hero-eyebrow">Reservation flow</span>
-                            <h1>Choose a station, preview the route, then book a time slot</h1>
+                            <span className="hero-eyebrow">Premium charging</span>
+                            <h1>Select a station, review the route, and reserve your slot</h1>
                             <p>
-                                The page is organized to guide you from station discovery to confirmation with as few distractions as possible.
+                                A cleaner, calmer reservation experience designed to feel closer to a Tesla-style in-car workflow.
                             </p>
                         </div>
 
                         <div className="hero-pills" aria-label="Reservation steps">
-                            <span className="hero-pill active">1. Select station</span>
-                            <span className="hero-pill">2. Review route</span>
+                            <span className="hero-pill active">1. Choose station</span>
+                            <span className="hero-pill">2. Review map</span>
                             <span className="hero-pill">3. Pick time</span>
                             <span className="hero-pill">4. Confirm</span>
                         </div>
@@ -163,7 +163,7 @@ const Reservation = () => {
                             <div className="list-section">
                                 {loading && !stations.length ? (
                                     <div className="loading-section">
-                                        <p>Chargement des stations...</p>
+                                        <p>Loading stations...</p>
                                     </div>
                                 ) : (
                                     <StationList
@@ -193,6 +193,7 @@ const Reservation = () => {
                             <button
                                 className="error-close"
                                 onClick={() => setError(null)}
+                                aria-label="Dismiss error"
                             >
                                 x
                             </button>
