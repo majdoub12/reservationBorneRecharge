@@ -136,10 +136,7 @@ const Reservation = () => {
                     <div className="reservation-hero">
                         <div className="hero-copy">
                             <span className="hero-eyebrow">Premium charging</span>
-                            <h1>Select a station, review the route, and reserve your slot</h1>
-                            <p>
-                                A cleaner, calmer reservation experience designed to feel closer to a Tesla-style in-car workflow.
-                            </p>
+                            <h2>Select a station, review the route, and reserve your slot</h2>
                         </div>
 
                         <div className="hero-pills" aria-label="Reservation steps">

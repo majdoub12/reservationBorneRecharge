@@ -1,25 +1,27 @@
-import React from 'react';
+import React, { useId } from 'react';
 import './styles/Batteryvisualizer.css';
 
 const BatteryVisualizer = ({ progress, vehicleMatricule, stationName, chargingTime, statusLabel }) => {
-    /**
-     * Visualize charging progress as a battery
-     * progress: 0, 25, 50, 75, 100
-     * vehicleMatricule: ex "TN123ABC"
-     * stationName: ex "Station Centre Tunis"
-     * chargingTime: estimated time in minutes
-     */
+    const gradientId = useId().replace(/:/g, '');
+    const safeProgress = Math.max(0, Math.min(100, Number(progress) || 0));
+    const normalizedProgress = Math.round(safeProgress);
+    const ringSize = 220;
+    const ringStroke = 18;
+    const ringRadius = (ringSize - ringStroke) / 2;
+    const ringCircumference = 2 * Math.PI * ringRadius;
+    const ringOffset = ringCircumference * (1 - safeProgress / 100);
+    const activeTicks = Math.max(0, Math.min(12, Math.ceil((safeProgress / 100) * 12)));
 
-    const getBatteryColor = (progress, label) => {
+    const getBatteryColor = (value, label) => {
         if (label && /payment|required|complete/i.test(label)) return '#4caf50';
-        if (progress === 0) return '#ccc';
-        if (progress <= 25) return '#ff6b6b'; // Red
-        if (progress <= 50) return '#ffa500'; // Orange
-        if (progress <= 75) return '#ffc107'; // Yellow
-        return '#4caf50'; // Green
+        if (value === 0) return '#6b7280';
+        if (value <= 25) return '#fb7185';
+        if (value <= 50) return '#f59e0b';
+        if (value <= 75) return '#facc15';
+        return '#4caf50';
     };
 
-    const getProgressText = (progress) => {
+    const getProgressText = (value) => {
         if (statusLabel) {
             return statusLabel;
         }
@@ -31,56 +33,79 @@ const BatteryVisualizer = ({ progress, vehicleMatricule, stationName, chargingTi
             75: 'Charging - 75%',
             100: 'Charge complete'
         };
-        return texts[Math.round(progress)] || 'Charging in progress';
+        return texts[Math.round(value)] || 'Charging in progress';
     };
 
-    const estimatedTimeRemaining = (progress, totalTime) => {
-        const remaining = Math.max(0, Math.round(totalTime * ((100 - progress) / 100)));
+    const estimatedTimeRemaining = (value, totalTime) => {
+        const remaining = Math.max(0, Math.round(totalTime * ((100 - value) / 100)));
         return remaining;
     };
 
     return (
         <div className="battery-visualizer">
-            {/* Vehicle Info */}
             <div className="vehicle-info">
-                <span className="matricule">🚗 {vehicleMatricule}</span>
+                <span className="matricule">EV {vehicleMatricule}</span>
                 <span className="station">{stationName}</span>
             </div>
 
-            {/* Battery Visual */}
-            <div className="battery-container">
-                {/* Battery Body */}
-                <div className="battery-body">
-                    <div
-                        className="battery-fill"
-                        style={{
-                            width: `${progress}%`,
-                            backgroundColor: getBatteryColor(progress, statusLabel)
-                        }}
-                    >
-                        <span className="battery-text">{progress}%</span>
+            <div className="circular-battery-stage">
+                <div className="battery-orbit">
+                    <svg className="battery-ring" viewBox={`0 0 ${ringSize} ${ringSize}`} aria-hidden="true">
+                        <defs>
+                            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#14b8a6" />
+                                <stop offset="55%" stopColor={getBatteryColor(safeProgress, statusLabel)} />
+                                <stop offset="100%" stopColor="#0f766e" />
+                            </linearGradient>
+                        </defs>
+                        <circle
+                            className="battery-ring-track"
+                            cx={ringSize / 2}
+                            cy={ringSize / 2}
+                            r={ringRadius}
+                        />
+                        <circle
+                            className="battery-ring-progress"
+                            cx={ringSize / 2}
+                            cy={ringSize / 2}
+                            r={ringRadius}
+                            stroke={`url(#${gradientId})`}
+                            strokeDasharray={ringCircumference}
+                            strokeDashoffset={ringOffset}
+                        />
+                    </svg>
+
+                    <div className="battery-ring-ticks" aria-hidden="true">
+                        {Array.from({ length: 12 }).map((_, index) => (
+                            <span
+                                key={index}
+                                className={`battery-tick ${index < activeTicks ? 'active' : ''}`}
+                            />
+                        ))}
                     </div>
-                    <div className="battery-background"></div>
+
+                    <div className="battery-ring-knob" aria-hidden="true">
+                        <span className="battery-ring-knob-dot" />
+                    </div>
+
+                    <div className="battery-ring-center">
+                        <span className="battery-percentage">{normalizedProgress}%</span>
+                        <span className="battery-status">{getProgressText(safeProgress)}</span>
+                        <span className="battery-time">~{estimatedTimeRemaining(safeProgress, chargingTime)} min left</span>
+                    </div>
                 </div>
-
-                {/* Battery Terminal (petit rectangle à droite) */}
-                <div className="battery-terminal"></div>
             </div>
 
-                {/* Progress Status */}
             <div className="progress-status">
-                <p className="status-text">{getProgressText(progress)}</p>
-                <p className="time-remaining">
-                    Time remaining: ~{estimatedTimeRemaining(progress, chargingTime)} min
-                </p>
+                <p className="status-text">{statusLabel || getProgressText(safeProgress)}</p>
+                <p className="time-remaining">Time remaining: ~{estimatedTimeRemaining(safeProgress, chargingTime)} min</p>
             </div>
 
-            {/* Progress Steps Indicators */}
             <div className="progress-steps-mini">
                 {[0, 25, 50, 75, 100].map(step => (
                     <div
                         key={step}
-                        className={`step-indicator ${progress >= step ? 'completed' : ''}`}
+                        className={`step-indicator ${safeProgress >= step ? 'completed' : ''}`}
                         title={`${step}%`}
                     >
                         {step}%
