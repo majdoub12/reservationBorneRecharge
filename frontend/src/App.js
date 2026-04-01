@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 // import Home from './pages/Home';
 import TunisianAuth from './pages/authentication/TunisianAuth';
 import OTPVerification from './pages/authentication/OTPVerification';
@@ -32,58 +33,90 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/tunisian-auth" element={<TunisianAuth />} />
-          <Route path="/verify-otp" element={<OTPVerification />} />
-          <Route path="/auth/foreign" element={<ForeignAuth />} />
-          <Route path="/verify-foreign-otp" element={<ForeignOTPVerification />} />
+        <AnimatedRoutes />
+      </TooltipProvider>
+    </BrowserRouter>
+  );
+}
 
-          {/* Protected Routes */}
-          <Route
-            path="/reservation"
-            element={
-              <ProtectedRoute>
+const routeMotionProps = {
+  initial: { opacity: 0, y: 10, scale: 0.995 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -8, scale: 0.995 },
+  transition: { duration: 0.24, ease: 'easeOut' },
+};
+
+const PageTransition = ({ children }) => (
+  <motion.main className="page-shell" {...routeMotionProps}>
+    {children}
+  </motion.main>
+);
+
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+        <Route path="/tunisian-auth" element={<PageTransition><TunisianAuth /></PageTransition>} />
+        <Route path="/verify-otp" element={<PageTransition><OTPVerification /></PageTransition>} />
+        <Route path="/auth/foreign" element={<PageTransition><ForeignAuth /></PageTransition>} />
+        <Route path="/verify-foreign-otp" element={<PageTransition><ForeignOTPVerification /></PageTransition>} />
+
+        <Route
+          path="/reservation"
+          element={
+            <PageTransition>
+              <ProtectedRoute redirectTo="/tunisian-auth">
                 <Reservation />
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/active-reservations"
-            element={
-              <ProtectedRoute>
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/active-reservations"
+          element={
+            <PageTransition>
+              <ProtectedRoute redirectTo="/tunisian-auth">
                 <ActiveReservations />
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/invoices"
-            element={
-              <ProtectedRoute>
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/invoices"
+          element={
+            <PageTransition>
+              <ProtectedRoute redirectTo="/tunisian-auth">
                 <Invoices />
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <PageTransition>
               <ProtectedRoute redirectTo="/tunisian-auth" allowWithStateKey="vehicleId">
                 <Settings />
               </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/charging-visualization"
-            element={
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/charging-visualization"
+          element={
+            <PageTransition>
               <ProtectedRoute redirectTo="/tunisian-auth" allowWithStateKey="vehicleId">
                 <ChargingVisualizationPage />
               </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </TooltipProvider>
-    </BrowserRouter>
+            </PageTransition>
+          }
+        />
+        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 

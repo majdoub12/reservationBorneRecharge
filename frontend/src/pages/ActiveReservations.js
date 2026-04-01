@@ -250,7 +250,14 @@ const ActiveReservations = () => {
                                             <div>
                                                 <span className="meta-label">Location</span>
                                                 <strong>
-                                                    {reservation.latitude}, {reservation.longitude}
+                                                    <a
+                                                        href={`https://www.google.com/maps?q=${reservation.latitude},${reservation.longitude}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="map-link"
+                                                    >
+                                                        {reservation.station_name}
+                                                    </a>
                                                 </strong>
                                             </div>
                                             <div>

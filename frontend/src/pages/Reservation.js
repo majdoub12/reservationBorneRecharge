@@ -60,7 +60,7 @@ const Reservation = () => {
         }
     };
 
-    const createReservation = async (slot) => {
+    const createReservation = async (slot, _date) => {
         if (!carInfo || !selectedStation) {
             setError('Informations de la voiture manquantes');
             return;
@@ -115,6 +115,7 @@ const Reservation = () => {
         setSelectedStation(null);
         setShowConfirmation(false);
         setReservation(null);
+        navigate('/active-reservations');
     };
 
     if (!carInfo) {

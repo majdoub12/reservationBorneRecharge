@@ -1,4 +1,4 @@
-const reservationService = require('../utils/reservationService');
+﻿const reservationService = require('../utils/reservationService');
 const CHARGING_STATUSES = ['charging_25', 'charging_50', 'charging_75', 'completed'];
 
 // =====================================================
@@ -7,7 +7,7 @@ const CHARGING_STATUSES = ['charging_25', 'charging_50', 'charging_75', 'complet
 
 /**
  * GET /api/reservations/stations
- * Récupère toutes les stations
+ * RÃ©cupÃ¨re toutes les stations
  */
 const getAllStations = async (req, res) => {
     try {
@@ -29,7 +29,7 @@ const getAllStations = async (req, res) => {
 
 /**
  * GET /api/reservations/stations/:stationId
- * Récupère une station par ID
+ * RÃ©cupÃ¨re une station par ID
  */
 const getStationById = async (req, res) => {
     try {
@@ -58,20 +58,18 @@ const getStationById = async (req, res) => {
 };
 
 // =====================================================
-// SLOTS (Créneaux)
+// SLOTS (CrÃ©neaux)
 // =====================================================
 
 /**
  * GET /api/reservations/stations/:stationId/slots?date=YYYY-MM-DD
- * Récupère les créneaux disponibles pour une station à une date donnée
+ * RÃ©cupÃ¨re les crÃ©neaux disponibles pour une station Ã  une date donnÃ©e
  */
 const getSlotsByStation = async (req, res) => {
     try {
         const { stationId } = req.params;
         const { date } = req.query;
 
-        // DEBUG
-        console.log('DEBUG getSlotsByStation:', { stationId, date, params: req.params, query: req.query });
 
         // Valider que stationId est un UUID valide
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -121,7 +119,7 @@ const getSlotsByStation = async (req, res) => {
 
 /**
  * POST /api/reservations/check-conflict
- * Vérifie s'il y a un conflit pour une voiture à un créneau donné
+ * VÃ©rifie s'il y a un conflit pour une voiture Ã  un crÃ©neau donnÃ©
  */
 const checkConflict = async (req, res) => {
     try {
@@ -153,7 +151,7 @@ const checkConflict = async (req, res) => {
 
 /**
  * POST /api/reservations/create
- * Crée une nouvelle réservation
+ * CrÃ©e une nouvelle rÃ©servation
  * Body: { carId, stationId, slotId, startDateTime, durationMinutes }
  */
 const createReservation = async (req, res) => {
@@ -167,7 +165,7 @@ const createReservation = async (req, res) => {
             });
         }
 
-        // Récupérer les infos de la station pour le tarif
+        // RÃ©cupÃ©rer les infos de la station pour le tarif
         const station = await reservationService.getStationById(stationId);
         if (!station) {
             return res.status(404).json({
@@ -176,7 +174,7 @@ const createReservation = async (req, res) => {
             });
         }
 
-        // Créer la réservation
+        // CrÃ©er la rÃ©servation
         const reservation = await reservationService.createReservation(
             carId,
             stationId,
@@ -185,14 +183,14 @@ const createReservation = async (req, res) => {
             station.tariff
         );
 
-        // Récupérer les infos de la voiture
+        // RÃ©cupÃ©rer les infos de la voiture
         const pool = require('../config/db');
         const carResult = await pool.query('SELECT immatricul FROM vehicles WHERE id = $1', [carId]);
         const vehicleMatricule = carResult.rows[0]?.immatricul || 'Unknown';
 
         const startDateTime = `${date_reserve}T${heur_reserve}`;
         
-        // Générer le QR Code
+        // GÃ©nÃ©rer le QR Code
         const qrCode = await reservationService.generateQRCodeForReservation(
             reservation.id,
             station.name,
@@ -253,7 +251,7 @@ const createReservation = async (req, res) => {
 
 /**
  * GET /api/reservations/my-reservations/:carId
- * Récupère les réservations futures d'une voiture
+ * RÃ©cupÃ¨re les rÃ©servations futures d'une voiture
  */
 const getMyReservations = async (req, res) => {
     try {
@@ -304,7 +302,7 @@ const getAllChargingSessions = async (req, res) => {
 
 /**
  * GET /api/reservations/invoices/:carId
- * Récupère l'historique des factures d'une voiture
+ * RÃ©cupÃ¨re l'historique des factures d'une voiture
  */
 const getInvoicesByCarId = async (req, res) => {
     try {
@@ -336,7 +334,7 @@ const getInvoicesByCarId = async (req, res) => {
 
 /**
  * GET /api/reservations/:reservationId
- * Récupère une réservation par ID
+ * RÃ©cupÃ¨re une rÃ©servation par ID
  */
 const getReservationById = async (req, res) => {
     try {
@@ -367,7 +365,7 @@ const getReservationById = async (req, res) => {
 
 /**
  * DELETE /api/reservations/:reservationId/cancel
- * Annule une réservation
+ * Annule une rÃ©servation
  */
 const cancelReservation = async (req, res) => {
     try {
@@ -409,7 +407,7 @@ const cancelReservation = async (req, res) => {
 
 /**
  * PATCH /api/reservations/:reservationId/status
- * Met à jour le statut de chargement d'une réservation
+ * Met Ã  jour le statut de chargement d'une rÃ©servation
  */
 const updateReservationStatus = async (req, res) => {
     try {
@@ -466,7 +464,7 @@ const updateReservationStatus = async (req, res) => {
 
 /**
  * PATCH /api/reservations/:reservationId/pay
- * Marque une réservation comme payée
+ * Marque une rÃ©servation comme payÃ©e
  */
 const payReservation = async (req, res) => {
     try {
@@ -508,7 +506,7 @@ const payReservation = async (req, res) => {
 
 /**
  * DELETE /api/reservations/:reservationId
- * Supprime une réservation (après paiement)
+ * Supprime une rÃ©servation (aprÃ¨s paiement)
  */
 const deleteReservation = async (req, res) => {
     try {

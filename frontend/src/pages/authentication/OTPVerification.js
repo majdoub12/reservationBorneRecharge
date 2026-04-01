@@ -16,9 +16,12 @@ const OTPVerification = () => {
 
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
   const [timeLeft, setTimeLeft] = useState(300);
   const inputRefs = useRef([]);
+
+  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     if (!vehicleId) navigate("/tunisian-auth");
@@ -70,7 +73,7 @@ const OTPVerification = () => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/verify-otp", {
+      const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ vehicleId, code }),
@@ -90,6 +93,31 @@ const OTPVerification = () => {
       setError("Cannot reach server. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resending) return;
+    setResending(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vehicleId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.message || "Could not resend code. Try again.");
+        return;
+      }
+      setDigits(["", "", "", "", "", ""]);
+      setTimeLeft(300);
+      inputRefs.current[0]?.focus();
+    } catch {
+      setError("Cannot reach server. Please try again.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -147,7 +175,19 @@ const OTPVerification = () => {
                   Code expires in <span className="font-heading tracking-wider text-foreground">{formatTime(timeLeft)}</span>
                 </span>
               ) : (
-                <span className="text-sm font-medium text-destructive">Code expired. Go back and request a new one.</span>
+                <span className="flex items-center gap-2 text-sm font-medium text-destructive">
+                  Code expired.
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resending}
+                    className="ml-1 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-opacity hover:opacity-80 disabled:opacity-50"
+                  >
+                    {resending ? (
+                      <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Sending...</span>
+                    ) : 'Resend code'}
+                  </button>
+                </span>
               )}
             </div>
             <div className="h-1 w-full overflow-hidden rounded-full bg-secondary/60">

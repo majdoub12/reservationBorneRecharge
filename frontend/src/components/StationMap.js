@@ -67,6 +67,12 @@ const toStationPoint = (station) => {
     return { latitude, longitude };
 };
 
+const getValidStationPoints = (stations) => (
+    Array.isArray(stations)
+        ? stations.map(toStationPoint).filter(Boolean)
+        : []
+);
+
 const isValidPoint = (point) => (
     point
     && Number.isFinite(point.lat)
@@ -282,10 +288,13 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 dashArray: forcedMode === ROUTE_MODES.walking ? '8 8' : '10 8',
             }).addTo(mapInstanceRef.current);
 
-            mapInstanceRef.current.fitBounds(routeLayerRef.current.getBounds(), {
-                padding: [40, 40],
-                maxZoom: 15,
-            });
+            const routeBounds = routeLayerRef.current.getBounds();
+            if (routeBounds?.isValid?.()) {
+                mapInstanceRef.current.fitBounds(routeBounds, {
+                    padding: [40, 40],
+                    maxZoom: 15,
+                });
+            }
 
             const bearing = getBearing(
                 origin.lat,
@@ -336,10 +345,13 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 }
             ).addTo(mapInstanceRef.current);
 
-            mapInstanceRef.current.fitBounds(routeLayerRef.current.getBounds(), {
-                padding: [40, 40],
-                maxZoom: 15,
-            });
+            const routeBounds = routeLayerRef.current.getBounds();
+            if (routeBounds?.isValid?.()) {
+                mapInstanceRef.current.fitBounds(routeBounds, {
+                    padding: [40, 40],
+                    maxZoom: 15,
+                });
+            }
 
             const straightDistance = calculateDistance(
                 origin.lat,
@@ -452,14 +464,20 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
     const handleFitStations = useCallback(() => {
         if (!mapInstanceRef.current || !stations?.length) return;
 
-        const validStations = stations
-            .map(toStationPoint)
-            .filter(Boolean);
+        const validStations = getValidStationPoints(stations);
 
         if (!validStations.length) return;
 
+        if (validStations.length === 1) {
+            const [singleStation] = validStations;
+            mapInstanceRef.current.setView([singleStation.latitude, singleStation.longitude], 13);
+            return;
+        }
+
         const bounds = L.latLngBounds(validStations.map((station) => [station.latitude, station.longitude]));
-        mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+        if (bounds.isValid()) {
+            mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+        }
     }, [stations]);
 
     const handleMapClick = useCallback((e) => {
@@ -537,11 +555,18 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
         }
 
         if (!fitBoundsOnceRef.current) {
-            const validStations = stations.map(toStationPoint).filter(Boolean);
+            const validStations = getValidStationPoints(stations);
 
             if (validStations.length) {
-                const bounds = L.latLngBounds(validStations.map((station) => [station.latitude, station.longitude]));
-                mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+                if (validStations.length === 1) {
+                    const [singleStation] = validStations;
+                    mapInstanceRef.current.setView([singleStation.latitude, singleStation.longitude], 13);
+                } else {
+                    const bounds = L.latLngBounds(validStations.map((station) => [station.latitude, station.longitude]));
+                    if (bounds.isValid()) {
+                        mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+                    }
+                }
                 fitBoundsOnceRef.current = true;
             }
         }

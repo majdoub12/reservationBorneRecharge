@@ -3,7 +3,9 @@
  * Contient uniquement les appels HTTP au backend
  */
 
-const API_BASE_URL = 'http://localhost:5000/api/reservations';
+import { getAuthHeaders, getReservationApiBaseUrl } from '../utils/auth';
+
+const API_BASE_URL = getReservationApiBaseUrl();
 
 const formatDateForApi = (date) => {
     if (typeof date === 'string') {
@@ -22,7 +24,9 @@ const formatDateForApi = (date) => {
  */
 export const getStations = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/stations`);
+        const response = await fetch(`${API_BASE_URL}/stations`, {
+            headers: getAuthHeaders(),
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -39,7 +43,9 @@ export const getStations = async () => {
  */
 export const getStationById = async (stationId) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/stations/${stationId}`);
+        const response = await fetch(`${API_BASE_URL}/stations/${stationId}`, {
+            headers: getAuthHeaders(),
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -58,7 +64,8 @@ export const getSlotsByStation = async (stationId, date) => {
     try {
         const formattedDate = formatDateForApi(date);
         const response = await fetch(
-            `${API_BASE_URL}/stations/${stationId}/slots?date=${formattedDate}`
+            `${API_BASE_URL}/stations/${stationId}/slots?date=${formattedDate}`,
+            { headers: getAuthHeaders() }
         );
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -78,9 +85,7 @@ export const checkConflict = async (carId, date_reserve, heur_reserve) => {
     try {
         const response = await fetch(`${API_BASE_URL}/check-conflict`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 carId,
                 date_reserve,
@@ -107,9 +112,7 @@ export const createReservation = async (carId, stationId, date_reserve, heur_res
     try {
         const response = await fetch(`${API_BASE_URL}/create`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 carId,
                 stationId,
@@ -136,7 +139,9 @@ export const createReservation = async (carId, stationId, date_reserve, heur_res
  */
 export const getMyReservations = async (carId) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/my-reservations/${carId}`);
+        const response = await fetch(`${API_BASE_URL}/my-reservations/${carId}`, {
+            headers: getAuthHeaders(),
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -153,7 +158,9 @@ export const getMyReservations = async (carId) => {
  */
 export const getReservationById = async (reservationId) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/${reservationId}`);
+        const response = await fetch(`${API_BASE_URL}/${reservationId}`, {
+            headers: getAuthHeaders(),
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -171,7 +178,8 @@ export const getReservationById = async (reservationId) => {
 export const cancelReservation = async (reservationId) => {
     try {
         const response = await fetch(`${API_BASE_URL}/${reservationId}/cancel`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getAuthHeaders(),
         });
 
         if (!response.ok) {
@@ -193,7 +201,8 @@ export const cancelReservation = async (reservationId) => {
 export const deleteReservation = async (reservationId) => {
     try {
         const response = await fetch(`${API_BASE_URL}/${reservationId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getAuthHeaders(),
         });
 
         if (!response.ok) {
@@ -213,7 +222,9 @@ export const deleteReservation = async (reservationId) => {
  */
 export const getInvoicesByCarId = async (carId) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/invoices/${carId}`);
+        const response = await fetch(`${API_BASE_URL}/invoices/${carId}`, {
+            headers: getAuthHeaders(),
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -232,9 +243,7 @@ export const payReservation = async (reservationId) => {
     try {
         const response = await fetch(`${API_BASE_URL}/${reservationId}/pay`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: getAuthHeaders(),
         });
 
         if (!response.ok) {
@@ -257,9 +266,7 @@ export const updateReservationStatus = async (reservationId, status) => {
     try {
         const response = await fetch(`${API_BASE_URL}/${reservationId}/status`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ status })
         });
 

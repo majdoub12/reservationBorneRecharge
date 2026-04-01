@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const authRoutes = require('./routes/authRoutes');
-
+const reservationRoutes = require('./routes/reservationRouter');
 const pool = require('./config/db');
 
 const app = express();
@@ -16,9 +16,7 @@ app.get('/', (req, res) => {
     res.send('API is running...');
 });
 
-app.use('/api/auth', authRoutes); 
-
-const reservationRoutes = require('./routes/reservationRouter');
+app.use('/api/auth', authRoutes);
 app.use('/api/reservations', reservationRoutes);
 
 

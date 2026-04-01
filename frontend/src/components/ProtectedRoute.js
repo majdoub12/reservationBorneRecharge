@@ -1,17 +1,19 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { isTokenSessionValid } from '../utils/authVehicle';
 
 const ProtectedRoute = ({ children, redirectTo = '/', allowWithStateKey = null }) => {
   const location = useLocation();
-  const token = localStorage.getItem('token');
+  const hasValidSession = isTokenSessionValid();
   const hasAllowedState = allowWithStateKey && location.state?.[allowWithStateKey];
 
   console.log(
     'ProtectedRoute: checking access...',
-    token ? 'Authenticated' : hasAllowedState ? 'Allowed by route state' : 'Denied'
+    hasValidSession ? 'Authenticated' : hasAllowedState ? 'Allowed by route state' : 'Denied'
   );
 
-  if (!token && !hasAllowedState) {
+  if (!hasValidSession && !hasAllowedState) {
+    localStorage.removeItem('token');
     return <Navigate to={redirectTo} replace />;
   }
 

@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const reservationController = require('../controllers/reservationController');
+const authenticateToken = require('../middleware/authMiddleware');
+
+// All reservation routes require a valid JWT token
+router.use(authenticateToken);
 
 // =====================================================
 // STATIONS ROUTES
@@ -30,6 +34,8 @@ router.get('/stations/:stationId/slots', reservationController.getSlotsByStation
 
 // =====================================================
 // RESERVATIONS ROUTES
+// NOTE: Specific named routes MUST come before /:reservationId
+// to prevent Express matching e.g. "charging" or "invoices" as a reservationId.
 // =====================================================
 
 /**
@@ -61,6 +67,10 @@ router.get('/charging', reservationController.getAllChargingSessions);
  * Récupère les factures d'une voiture
  */
 router.get('/invoices/:carId', reservationController.getInvoicesByCarId);
+
+// =====================================================
+// WILDCARD ROUTES — must come last
+// =====================================================
 
 /**
  * GET /api/reservations/:reservationId

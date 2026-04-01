@@ -507,3 +507,14 @@
     justify-content: stretch;
   }
 }
+
+.map-link {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity 0.15s ease;
+}
+
+.map-link:hover {
+  opacity: 0.8;
+}

@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:5000/api/reservations';
+import { getAuthHeaders, getReservationApiBaseUrl } from '../utils/auth';
+
+const API_BASE_URL = getReservationApiBaseUrl();
 
 const STATUS_TO_PROGRESS = {
     pending: 0,
@@ -49,7 +51,9 @@ const computeDynamicProgress = (session) => {
 };
 
 export const getAllCharging = async () => {
-    const response = await fetch(`${API_BASE_URL}/charging`);
+    const response = await fetch(`${API_BASE_URL}/charging`, {
+        headers: getAuthHeaders()
+    });
     const sessions = await parseResponse(response);
 
     return sessions.map((session) => ({
