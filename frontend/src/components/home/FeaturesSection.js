@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import { Clock, MapPin, Shield, Zap } from "lucide-react";
 
 const features = [
@@ -54,6 +54,8 @@ function useReveal(threshold = 0.2) {
 function FeatureCard({ feature, index }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const { ref, visible } = useReveal(0.2);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
 
   const handleMouseMove = (event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -61,9 +63,12 @@ function FeatureCard({ feature, index }) {
     const cy = rect.top + rect.height / 2;
 
     setTilt({
-      x: ((event.clientY - cy) / rect.height) * -8,
-      y: ((event.clientX - cx) / rect.width) * 8,
+      x: ((event.clientY - cy) / rect.height) * -10,
+      y: ((event.clientX - cx) / rect.width) * 10,
     });
+    
+    mouseX.set(event.clientX - rect.left);
+    mouseY.set(event.clientY - rect.top);
   };
 
   return (
@@ -72,22 +77,34 @@ function FeatureCard({ feature, index }) {
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setTilt({ x: 0, y: 0 })}
       initial={false}
-      animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
-      transition={{ duration: 0.6, delay: index * 0.12 }}
-      className="group rounded-3xl border border-border/50 bg-card/60 p-8 transition-all duration-500 hover:border-primary/30 hover:shadow-[0_0_40px_hsla(187,90%,58%,0.12)]"
+      animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+      transition={{ duration: 0.7, delay: index * 0.15, ease: [0.16, 1, 0.3, 1] }}
+      className="group glass-card-hover p-8 relative overflow-hidden"
       style={{
         transform: visible
-          ? `perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`
-          : "translateY(24px)",
+          ? `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`
+          : "translateY(30px)",
       }}
     >
-      <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors duration-300 group-hover:bg-primary/20">
-        <feature.icon className="h-6 w-6" />
+      <motion.div
+        className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              400px circle at ${mouseX}px ${mouseY}px,
+              hsla(187, 100%, 55%, 0.15),
+              transparent 80%
+            )
+          `,
+        }}
+      />
+      <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-transparent border border-white/5 text-primary shadow-[0_0_15px_rgba(0,255,240,0.2)] transition-all duration-500 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(0,255,240,0.4)]">
+        <feature.icon className="h-7 w-7 drop-shadow-[0_0_8px_rgba(0,255,240,0.8)]" />
       </div>
-      <h3 className="mb-3 font-display text-base font-semibold tracking-wide text-foreground">
+      <h3 className="mb-3 font-display text-lg font-bold tracking-wide text-foreground group-hover:text-white transition-colors duration-300">
         {feature.title}
       </h3>
-      <p className="font-body text-sm leading-relaxed text-muted-foreground">
+      <p className="font-body text-sm leading-relaxed text-muted-foreground group-hover:text-white/80 transition-colors duration-300">
         {feature.description}
       </p>
     </motion.div>
@@ -98,23 +115,26 @@ const FeaturesSection = () => {
   const { ref: headingRef, visible: headingVisible } = useReveal(0.3);
 
   return (
-    <section className="relative py-24 md:py-32" id="features">
-      <div className="container mx-auto px-6">
+    <section className="relative py-32 isolate" id="features">
+       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,240,0.05)_0%,transparent_70%)]" />
+      <div className="container mx-auto px-6 relative z-10">
         <div
           ref={headingRef}
-          className={`mb-16 text-center transition-all duration-700 ${
-            headingVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          className={`mb-20 flex flex-col items-center text-center transition-all duration-1000 ${
+            headingVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
           }`}
         >
-          <p className="mb-4 font-body text-sm uppercase tracking-[0.3em] text-primary">
-            Why TeslaCharge
-          </p>
-          <h2 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-5xl">
-            BUILT FOR THE FUTURE
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 backdrop-blur-md">
+             <span className="font-body text-xs uppercase tracking-[0.3em] text-primary font-bold">
+                 Why TeslaCharge
+             </span>
+          </div>
+          <h2 className="font-display text-4xl font-extrabold tracking-tight text-foreground md:text-6xl max-w-2xl">
+            BUILT FOR THE <span className="text-gradient-cyan glow-text">FUTURE</span>
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           {features.map((feature, index) => (
             <FeatureCard key={feature.title} feature={feature} index={index} />
           ))}

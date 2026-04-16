@@ -104,22 +104,8 @@ async function runMigration() {
         console.log('-> Dropping foreign_otps table if exists...');
         await pool.query('DROP TABLE IF EXISTS foreign_otps CASCADE');
 
-        console.log('-> Ensuring foreign_requests table exists...');
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS foreign_requests (
-                id SERIAL PRIMARY KEY,
-                matricule VARCHAR(255) NOT NULL,
-                vin VARCHAR(255) NOT NULL,
-                email VARCHAR(255),
-                phone VARCHAR(255),
-                vehicle_id INTEGER REFERENCES vehicles(id) ON DELETE SET NULL,
-                status VARCHAR(32) NOT NULL DEFAULT 'pending',
-                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                CONSTRAINT foreign_requests_status_check CHECK (status IN ('pending', 'approved', 'rejected')),
-                CONSTRAINT foreign_requests_matricule_vin_unique UNIQUE (matricule, vin)
-            )
-        `);
+        console.log('-> Dropping foreign_requests table if exists...');
+        await pool.query('DROP TABLE IF EXISTS foreign_requests CASCADE');
 
         console.log('--- MIGRATION COMPLETE ---');
 

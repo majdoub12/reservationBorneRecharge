@@ -5,7 +5,6 @@ const { sendEmail } = require('../utils/emailService');
 const { queryExternalSystem } = require('../utils/mockExternalSystem');
 const twilio = require('twilio');
 
-let foreignRequestTableReady = false;
 let vehicleModelColumnReady = null;
 
 // ─── Twilio lazy init ─────────────────────────────────────────────────────────
@@ -139,30 +138,6 @@ async function ensureForeignVehicleContacts(vehicleId, email, phone) {
   }
 }
 
-async function ensureForeignRequestsTable() {
-  if (foreignRequestTableReady) {
-    return;
-  }
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS foreign_requests (
-      id SERIAL PRIMARY KEY,
-      matricule VARCHAR(255) NOT NULL,
-      vin VARCHAR(255) NOT NULL,
-      email VARCHAR(255),
-      phone VARCHAR(255),
-      vehicle_id INTEGER REFERENCES vehicles(id) ON DELETE SET NULL,
-      status VARCHAR(32) NOT NULL DEFAULT 'pending',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      CONSTRAINT foreign_requests_status_check CHECK (status IN ('pending', 'approved', 'rejected')),
-      CONSTRAINT foreign_requests_matricule_vin_unique UNIQUE (matricule, vin)
-    )
-  `);
-
-  foreignRequestTableReady = true;
-}
-
 async function vehicleHasModelColumn() {
   if (vehicleModelColumnReady !== null) {
     return vehicleModelColumnReady;
@@ -193,63 +168,6 @@ async function fetchVehicleIdentityById(vehicleId) {
   );
 
   return result.rows[0] || null;
-}
-
-async function upsertForeignRequest({ matricule, vin, email, phone, vehicleId = null, status }) {
-  await ensureForeignRequestsTable();
-
-  await pool.query(
-    `
-      INSERT INTO foreign_requests (matricule, vin, email, phone, vehicle_id, status, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-      ON CONFLICT (matricule, vin)
-      DO UPDATE SET
-        email = EXCLUDED.email,
-        phone = EXCLUDED.phone,
-        vehicle_id = COALESCE(EXCLUDED.vehicle_id, foreign_requests.vehicle_id),
-        status = EXCLUDED.status,
-        updated_at = NOW()
-    `,
-    [matricule, vin, email || null, phone || null, vehicleId, status]
-  );
-}
-
-async function getPersistentForeignStatus(matricule, vin) {
-  await ensureForeignRequestsTable();
-
-  const requestResult = await pool.query(
-    'SELECT status, vehicle_id FROM foreign_requests WHERE matricule=$1 AND vin=$2 LIMIT 1',
-    [matricule, vin]
-  );
-
-  if (requestResult.rows.length > 0) {
-    return requestResult.rows[0].status;
-  }
-
-  // Backward-compatible fallback for rows created before the table existed.
-  const vehicleResult = await pool.query(
-    'SELECT id, is_foreign, is_temporary FROM vehicles WHERE UPPER(immatricul)=$1 OR UPPER(vin)=$2 LIMIT 1',
-    [matricule, vin]
-  );
-
-  if (vehicleResult.rows.length === 0) {
-    return 'unknown';
-  }
-
-  const vehicle = vehicleResult.rows[0];
-  if (!vehicle.is_foreign) {
-    return 'unknown';
-  }
-
-  const derivedStatus = vehicle.is_temporary ? 'pending' : 'approved';
-  await upsertForeignRequest({
-    matricule,
-    vin,
-    vehicleId: vehicle.id,
-    status: derivedStatus
-  });
-
-  return derivedStatus;
 }
 
 // ─── Tunisian Car Auth ────────────────────────────────────────────────────────
@@ -334,8 +252,6 @@ exports.foreignAuth = async (req, res) => {
   }
 
   try {
-    await ensureForeignRequestsTable();
-
     // 1. Query mock external system
     const car = queryExternalSystem(matricule, vin);
 
@@ -367,15 +283,6 @@ exports.foreignAuth = async (req, res) => {
       const existingMessage = existingVehicle.is_temporary
         ? 'This foreign vehicle has already been submitted and is still waiting for back-office approval.'
         : 'This foreign vehicle is already approved. You can proceed directly to OTP verification.';
-
-      await upsertForeignRequest({
-        matricule: normalizedMatricule,
-        vin: normalizedVin,
-        email,
-        phone,
-        vehicleId: existingVehicle.id,
-        status: existingVehicle.is_temporary ? 'pending' : 'approved'
-      });
 
       if (!existingVehicle.is_temporary) {
         const { deliveryErrors } = await issueForeignOTP(existingVehicle.id, email, phone);
@@ -409,15 +316,6 @@ exports.foreignAuth = async (req, res) => {
     const tempVehicle = newVehicleResult.rows[0];
 
     await ensureForeignVehicleContacts(tempVehicle.id, email, phone);
-
-    await upsertForeignRequest({
-      matricule: normalizedMatricule,
-      vin: normalizedVin,
-      email,
-      phone,
-      vehicleId: tempVehicle.id,
-      status: 'pending'
-    });
 
     // 4. Ask back-office to validate the foreign vehicle
     const approveUrl = `http://localhost:5000/api/auth/foreign/approve?matricule=${encodeURIComponent(matricule)}&vin=${encodeURIComponent(vin)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`;
@@ -472,8 +370,6 @@ exports.foreignApprove = async (req, res) => {
   }
 
   try {
-    await ensureForeignRequestsTable();
-
     const normalizedMatricule = matricule.trim().toUpperCase();
     const normalizedVin = vin.trim().toUpperCase();
 
@@ -499,14 +395,6 @@ exports.foreignApprove = async (req, res) => {
     }
 
     await ensureForeignVehicleContacts(vehicle.id, email, phone);
-    await upsertForeignRequest({
-      matricule: normalizedMatricule,
-      vin: normalizedVin,
-      email,
-      phone,
-      vehicleId: vehicle.id,
-      status: 'approved'
-    });
 
     const { deliveryErrors } = await issueForeignOTP(vehicle.id, email, phone);
 
@@ -533,13 +421,6 @@ exports.foreignReject = async (req, res) => {
   const normalizedVin = vin?.trim().toUpperCase();
 
   if (normalizedMatricule && normalizedVin) {
-    await ensureForeignRequestsTable();
-    await upsertForeignRequest({
-      matricule: normalizedMatricule,
-      vin: normalizedVin,
-      status: 'rejected'
-    });
-
     const vehicleResult = await pool.query(
       'SELECT * FROM vehicles WHERE UPPER(immatricul) = $1 OR UPPER(vin) = $2 LIMIT 1',
       [normalizedMatricule, normalizedVin]
@@ -572,7 +453,7 @@ exports.verifyOTP = async (req, res) => {
     const model = vehicle?.model || null;
 
     const result = await pool.query(
-      'SELECT * FROM otps WHERE vehicle_id=$1 AND code=$2 AND is_used=false AND expired=false',
+      'SELECT *, EXTRACT(EPOCH FROM (LOCALTIMESTAMP - created_at))/60 AS db_diff_minutes FROM otps WHERE vehicle_id=$1 AND code=$2 AND is_used=false AND expired=false',
       [vehicleId, code]
     );
 
@@ -581,14 +462,11 @@ exports.verifyOTP = async (req, res) => {
     }
 
     const otp = result.rows[0];
-
-    const now = new Date().getTime();
-    const createdAt = new Date(otp.created_at + 'Z').getTime();
-    const diffMinutes = (now - createdAt) / (1000 * 60);
+    const diffMinutes = parseFloat(otp.db_diff_minutes);
 
     if (diffMinutes > 5) {
       await pool.query('DELETE FROM otps WHERE id=$1', [otp.id]);
-      return res.status(400).json({ message: 'OTP expired' });
+      return res.status(400).json({ message: `OTP expired (${Math.round(diffMinutes)} minutes ago)` });
     }
 
     await pool.query('DELETE FROM otps WHERE id=$1', [otp.id]);
@@ -603,54 +481,39 @@ exports.verifyOTP = async (req, res) => {
   }
 };
 
-// ─── Foreign Request Status ──────────────────────────────────────────────────
-exports.foreignStatus = async (req, res) => {
-  const { matricule, vin } = req.query;
-  if (!matricule || !vin) {
-    return res.status(400).json({ message: 'Missing matricule or vin' });
-  }
-
-  const normalizedMatricule = matricule.trim().toUpperCase();
-  const normalizedVin = vin.trim().toUpperCase();
-  const status = await getPersistentForeignStatus(normalizedMatricule, normalizedVin);
-
-  res.json({ status });
-};
-
 // ─── Verify Foreign OTP ───────────────────────────────────────────────────────
 exports.verifyForeignOTP = async (req, res) => {
   const { vehicleId, email, code } = req.body;
   let targetVehicleId = vehicleId;
 
   try {
-    if (!targetVehicleId) {
-      if (!email) {
-        return res.status(400).json({ message: 'vehicleId or email is required' });
-      }
-
-      const emailRes = await pool.query(
-        'SELECT vehicle_id FROM emails WHERE address=$1 LIMIT 1',
-        [email]
+    let otpResult;
+    if (vehicleId) {
+      otpResult = await pool.query(
+        'SELECT *, EXTRACT(EPOCH FROM (LOCALTIMESTAMP - created_at))/60 AS db_diff_minutes FROM otps WHERE vehicle_id=$1 AND code=$2 AND is_used=false AND expired=false',
+        [vehicleId, code]
       );
-      if (emailRes.rows.length === 0) {
-        return res.status(404).json({ message: 'Vehicle not found for the given email' });
-      }
-      targetVehicleId = emailRes.rows[0].vehicle_id;
+    } else if (email) {
+      // Find latest valid OTP for ANY vehicle associated with this email
+      otpResult = await pool.query(
+        `SELECT o.*, EXTRACT(EPOCH FROM (LOCALTIMESTAMP - o.created_at))/60 AS db_diff_minutes 
+         FROM otps o 
+         JOIN emails e ON o.vehicle_id = e.vehicle_id 
+         WHERE e.address = $1 AND o.code = $2 AND o.is_used = false AND o.expired = false
+         ORDER BY o.created_at DESC LIMIT 1`,
+        [email, code]
+      );
+    } else {
+      return res.status(400).json({ message: 'vehicleId or email is required' });
     }
-
-    const otpResult = await pool.query(
-      'SELECT * FROM otps WHERE vehicle_id=$1 AND code=$2 AND is_used=false AND expired=false',
-      [targetVehicleId, code]
-    );
 
     if (otpResult.rows.length === 0) {
       return res.status(400).json({ message: 'Invalid or already used OTP' });
     }
 
     const otp = otpResult.rows[0];
-    const now = new Date().getTime();
-    const createdAt = new Date(otp.created_at + 'Z').getTime();
-    const diffMinutes = (now - createdAt) / (1000 * 60);
+    targetVehicleId = otp.vehicle_id; // Update targetVehicleId from the found OTP
+    const diffMinutes = parseFloat(otp.db_diff_minutes);
 
     if (diffMinutes > 5) {
       await pool.query('DELETE FROM otps WHERE id=$1', [otp.id]);
@@ -661,7 +524,7 @@ exports.verifyForeignOTP = async (req, res) => {
         await pool.query('DELETE FROM vehicles WHERE id=$1', [targetVehicleId]);
       }
 
-      return res.status(400).json({ message: 'OTP expired' });
+      return res.status(400).json({ message: `OTP expired (${Math.round(diffMinutes)} minutes ago)` });
     }
 
     await pool.query('UPDATE otps SET is_used=true WHERE id=$1', [otp.id]);

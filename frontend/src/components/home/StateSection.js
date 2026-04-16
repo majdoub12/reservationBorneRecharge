@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Battery, Timer, Wifi } from "lucide-react";
+import { motion } from "framer-motion";
 
 const stats = [
   { value: 500, suffix: "+", label: "Stations", icon: Battery },
@@ -39,8 +40,8 @@ function AnimatedNumber({ value, suffix, prefix = "", active }) {
   useEffect(() => {
     if (!active) return undefined;
 
-    const duration = 1500;
-    const steps = 40;
+    const duration = 2000;
+    const steps = 60;
     const increment = value / steps;
     let current = 0;
 
@@ -72,19 +73,21 @@ const StateSection = () => {
   const { ref, visible } = useReveal(0.3);
 
   return (
-    <section ref={ref} className="relative border-y border-border/30 py-20">
-      <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 divide-y divide-border/30 md:grid-cols-3 md:divide-x md:divide-y-0">
+    <section ref={ref} className="relative py-24 isolate">
+       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent skew-y-3" />
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="glass-panel rounded-3xl grid grid-cols-1 divide-y divide-border/20 md:grid-cols-3 md:divide-x md:divide-y-0 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
           {stats.map((stat, index) => (
-            <div
+            <motion.div
               key={stat.label}
-              className={`flex flex-col items-center px-8 py-8 text-center transition-all duration-700 md:py-0 ${
-                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-              }`}
-              style={{ transitionDelay: `${index * 0.2}s` }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+              transition={{ duration: 0.8, delay: index * 0.2, ease: "easeOut" }}
+              className="flex flex-col items-center justify-center p-12 text-center group hover:bg-white/5 transition-colors duration-500 relative overflow-hidden"
             >
-              <stat.icon className="mb-4 text-primary" size={28} />
-              <span className="font-display text-4xl font-bold text-foreground text-glow md:text-5xl">
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <stat.icon className="mb-6 text-primary group-hover:scale-110 drop-shadow-[0_0_12px_rgba(0,255,240,0.6)] transition-all duration-300" size={36} />
+              <span className="font-display text-5xl font-extrabold text-foreground tracking-tight drop-shadow-md group-hover:text-primary transition-colors duration-500 md:text-6xl">
                 <AnimatedNumber
                   value={stat.value}
                   suffix={stat.suffix}
@@ -92,10 +95,10 @@ const StateSection = () => {
                   active={visible}
                 />
               </span>
-              <span className="mt-2 font-body text-sm uppercase tracking-[0.2em] text-muted-foreground">
+              <span className="mt-4 font-body text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground group-hover:text-white transition-colors duration-500">
                 {stat.label}
               </span>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

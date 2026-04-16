@@ -1,34 +1,140 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../ui/button.js";
 import { Zap, Menu, X, BatteryCharging } from "lucide-react";
+
 const Navbar = ({ onReserve }) => {
-    const [scrolled, setScrolled] = useState(false);
-    const [mobileOpen, setMobileOpen] = useState(false);
-    useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 40);
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
-    return (React.createElement(motion.nav, { initial: { y: -20, opacity: 0 }, animate: { y: 0, opacity: 1 }, transition: { duration: 0.6 }, className: `fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? "bg-background/80 backdrop-blur-xl border-b border-border/50" : ""}` },
-        React.createElement("div", { className: "max-w-[1400px] mx-auto flex items-center justify-between px-6 py-4" },
-            React.createElement("div", { className: "flex items-center gap-3 font-display text-sm font-semibold tracking-[0.14em] uppercase text-foreground/90" },
-                React.createElement("div", { className: "flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-primary/20 to-background/70 shadow-[0_10px_24px_rgba(15,23,42,0.12)] backdrop-blur-md" },
-                    React.createElement(BatteryCharging, { className: "h-6 w-6 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.28)]", strokeWidth: 2.2 })),
-                React.createElement("div", { className: "flex flex-col leading-tight" },
-                    React.createElement("span", { className: "text-[0.95rem] font-semibold tracking-[0.12em] text-foreground/95" }, "Tesla Charge"),
-                    React.createElement("span", { className: "text-[0.65rem] font-medium tracking-[0.28em] text-muted-foreground" }, "Driver workspace"))),
-            React.createElement("div", { className: "hidden md:flex items-center gap-2" },
-                React.createElement(Button, { variant: "ghost", className: "text-muted-foreground hover:text-foreground", onClick: () => { var _a; return (_a = document.getElementById("features")) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: "smooth" }); } }, "Experience"),
-                React.createElement(Button, { variant: "nav", size: "default", onClick: onReserve },
-                    React.createElement(Zap, { className: "w-4 h-4" }),
-                    "Reserve Now")),
-            React.createElement("button", { className: "md:hidden text-foreground", onClick: () => setMobileOpen(!mobileOpen) }, mobileOpen ? React.createElement(X, { size: 24 }) : React.createElement(Menu, { size: 24 }))),
-        mobileOpen && (React.createElement(motion.div, { initial: { opacity: 0, y: -10 }, animate: { opacity: 1, y: 0 }, className: "md:hidden bg-background/95 backdrop-blur-xl border-b border-border/50 px-6 pb-6 flex flex-col gap-3" },
-            React.createElement(Button, { variant: "ghost", className: "justify-start text-muted-foreground", onClick: () => { var _a; setMobileOpen(false); (_a = document.getElementById("features")) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: "smooth" }); } }, "Experience"),
-            React.createElement(Button, { variant: "ghost", className: "justify-start text-muted-foreground", onClick: () => { var _a; setMobileOpen(false); (_a = document.getElementById("flow")) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: "smooth" }); } }, "How it works"),
-            React.createElement(Button, { variant: "hero", size: "lg", onClick: () => { setMobileOpen(false); onReserve(); } },
-                React.createElement(Zap, { className: "w-4 h-4" }),
-                "Reserve Now")))));
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  return (
+    <motion.nav
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        scrolled
+          ? "bg-background/70 backdrop-blur-2xl border-b border-border/40 shadow-sm"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="max-w-[1400px] mx-auto flex items-center justify-between px-6 py-4">
+        {/* Logo Section */}
+        <div className="flex items-center gap-3 font-display text-sm font-semibold tracking-[0.14em] uppercase text-foreground/90 cursor-pointer hover:opacity-80 transition-opacity">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-primary/30 to-background/80 shadow-[0_10px_24px_rgba(15,23,42,0.2)] backdrop-blur-md relative overflow-hidden group">
+            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <BatteryCharging
+              className="h-6 w-6 text-primary drop-shadow-[0_0_12px_rgba(0,255,240,0.5)] z-10"
+              strokeWidth={2.2}
+            />
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-[0.95rem] font-bold tracking-[0.12em] text-foreground/95">
+              Tesla Charge
+            </span>
+            <span className="text-[0.65rem] font-medium tracking-[0.28em] text-primary/70">
+              Driver workspace
+            </span>
+          </div>
+        </div>
+
+        {/* Desktop Links */}
+        <div className="hidden md:flex items-center gap-6">
+          <div className="relative group">
+            <Button
+              variant="ghost"
+              className="text-muted-foreground hover:text-foreground text-sm tracking-widest uppercase transition-colors"
+              onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
+            >
+              Experience
+            </Button>
+            <motion.div className="absolute -bottom-1 left-0 right-0 h-[2px] bg-primary origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out" />
+          </div>
+
+          <div className="relative group">
+             <Button
+              variant="ghost"
+              className="text-muted-foreground hover:text-foreground text-sm tracking-widest uppercase transition-colors"
+              onClick={() => document.getElementById("flow")?.scrollIntoView({ behavior: "smooth" })}
+            >
+              Flow
+            </Button>
+             <motion.div className="absolute -bottom-1 left-0 right-0 h-[2px] bg-primary origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out" />
+          </div>
+
+          <Button
+            variant="hero"
+            size="default"
+            onClick={onReserve}
+            className="relative overflow-hidden group border border-primary/30 shadow-[0_0_20px_rgba(0,255,240,0.15)] hover:shadow-[0_0_40px_rgba(0,255,240,0.3)] transition-all duration-500"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+            <Zap className="w-4 h-4 mr-2" />
+            <span className="tracking-widest uppercase text-sm font-semibold">Reserve Now</span>
+          </Button>
+        </div>
+
+        {/* Mobile menu toggle */}
+        <button
+          className="md:hidden text-foreground p-2 rounded-md hover:bg-white/5 transition-colors"
+          onClick={() => setMobileOpen(!mobileOpen)}
+        >
+          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="md:hidden bg-background/95 backdrop-blur-2xl border-b border-border/50 px-6 pb-6 pt-2 flex flex-col gap-4 overflow-hidden"
+          >
+            <Button
+              variant="ghost"
+              className="justify-start text-muted-foreground w-full tracking-widest uppercase text-sm"
+              onClick={() => {
+                setMobileOpen(false);
+                document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              Experience
+            </Button>
+            <Button
+              variant="ghost"
+              className="justify-start text-muted-foreground w-full tracking-widest uppercase text-sm"
+              onClick={() => {
+                setMobileOpen(false);
+                document.getElementById("flow")?.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              How it works
+            </Button>
+            <Button
+              variant="hero"
+              size="lg"
+              className="w-full mt-2 shadow-[0_0_20px_rgba(0,255,240,0.2)]"
+              onClick={() => {
+                setMobileOpen(false);
+                onReserve();
+              }}
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              Reserve Now
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.nav>
+  );
 };
+
 export default Navbar;
