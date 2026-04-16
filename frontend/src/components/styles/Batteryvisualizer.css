@@ -1,80 +1,55 @@
 .battery-visualizer {
-    --ring-size: min(100%, 260px);
-    display: grid;
-    gap: 16px;
-    justify-items: center;
-    padding: 22px;
-    border-radius: 28px;
-    background:
-        radial-gradient(circle at top, rgba(20, 184, 166, 0.16), transparent 32%),
-        linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 32px;
+    border-radius: 32px;
+    background: var(--surface-muted);
     border: 1px solid var(--surface-border);
-    box-shadow: 0 22px 52px rgba(0, 0, 0, 0.24);
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    backdrop-filter: blur(24px);
+    transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
     overflow: hidden;
 }
 
-:root[data-theme="light"] .battery-visualizer {
-    background:
-        radial-gradient(circle at top, rgba(20, 184, 166, 0.12), transparent 32%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.96));
-}
-
 .battery-visualizer:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 26px 58px rgba(0, 0, 0, 0.28);
-}
-
-.battery-visualizer::before {
-    content: '';
-    position: absolute;
-    inset: auto -18% -30% auto;
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(20, 184, 166, 0.18), transparent 68%);
-    pointer-events: none;
+    border-color: hsla(var(--primary) / 0.3);
+    box-shadow: var(--shadow-glow);
 }
 
 .vehicle-info {
-    width: 100%;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--surface-border);
+    flex-direction: column;
+    gap: 4px;
 }
 
 .matricule {
-    font-size: 0.98rem;
+    font-size: 0.8rem;
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.25em;
     text-transform: uppercase;
-    color: var(--text-primary);
+    color: var(--accent-strong);
+    text-shadow: 0 0 12px var(--accent-soft);
 }
 
 .station {
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-    font-weight: 600;
-    text-align: right;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    font-weight: 700;
 }
 
 .circular-battery-stage {
-    width: 100%;
-    display: grid;
-    place-items: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 0;
 }
 
 .battery-orbit {
     position: relative;
-    width: var(--ring-size);
-    aspect-ratio: 1;
-    display: grid;
-    place-items: center;
-    filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.2));
+    width: 220px;
+    height: 220px;
 }
 
 .battery-ring {
@@ -83,267 +58,129 @@
     transform: rotate(-90deg);
 }
 
-.battery-ring-track,
+.battery-ring-track {
+    fill: none;
+    stroke: var(--surface-border);
+}
+
 .battery-ring-progress {
     fill: none;
-    stroke-width: 18;
     stroke-linecap: round;
-}
-
-.battery-ring-track {
-    stroke: rgba(148, 163, 184, 0.14);
-}
-
-.battery-ring-progress {
-    transition: stroke-dashoffset 0.8s ease, stroke 0.3s ease;
-}
-
-.battery-ring-ticks {
-    position: absolute;
-    inset: 0;
-}
-
-.battery-tick {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 2px;
-    height: 12px;
-    border-radius: 999px;
-    background: rgba(148, 163, 184, 0.22);
-    transform-origin: center 96px;
-    opacity: 0.9;
-}
-
-.battery-tick.active {
-    background: rgba(20, 184, 166, 0.96);
-    box-shadow: 0 0 10px rgba(20, 184, 166, 0.35);
-}
-
-.battery-tick:nth-child(1) {
-    transform: translate(-50%, -50%) rotate(0deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(2) {
-    transform: translate(-50%, -50%) rotate(30deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(3) {
-    transform: translate(-50%, -50%) rotate(60deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(4) {
-    transform: translate(-50%, -50%) rotate(90deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(5) {
-    transform: translate(-50%, -50%) rotate(120deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(6) {
-    transform: translate(-50%, -50%) rotate(150deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(7) {
-    transform: translate(-50%, -50%) rotate(180deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(8) {
-    transform: translate(-50%, -50%) rotate(210deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(9) {
-    transform: translate(-50%, -50%) rotate(240deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(10) {
-    transform: translate(-50%, -50%) rotate(270deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(11) {
-    transform: translate(-50%, -50%) rotate(300deg) translateY(-96px);
-}
-
-.battery-tick:nth-child(12) {
-    transform: translate(-50%, -50%) rotate(330deg) translateY(-96px);
-}
-
-.battery-ring-knob {
-    position: absolute;
-    top: 16px;
-    right: 22px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(145deg, rgba(17, 24, 39, 0.96), rgba(15, 23, 42, 0.82));
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.24);
-    display: grid;
-    place-items: center;
-}
-
-.battery-ring-knob-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #14b8a6, #7dd3fc);
-    box-shadow: 0 0 12px rgba(20, 184, 166, 0.6);
+    transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .battery-ring-center {
     position: absolute;
-    inset: 22%;
-    display: grid;
-    place-items: center;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     text-align: center;
-    border-radius: 50%;
-    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.04), rgba(15, 23, 42, 0.96) 72%);
-    border: 1px solid rgba(148, 163, 184, 0.12);
-    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.28);
-    padding: 18px;
-}
-
-:root[data-theme="light"] .battery-ring-center {
-    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.96) 72%);
 }
 
 .battery-percentage {
-    display: block;
-    font-size: clamp(2.2rem, 4vw, 3.2rem);
-    line-height: 1;
+    font-size: 3.5rem;
     font-weight: 900;
-    letter-spacing: -0.05em;
+    line-height: 1;
     color: var(--text-primary);
+    font-family: "Space Grotesk", sans-serif;
+    letter-spacing: -0.05em;
+    display: flex;
+    align-items: baseline;
+}
+
+.battery-percentage small {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-left: 2px;
+}
+
+.status-badge {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: var(--surface-muted);
+    border: 1px solid var(--surface-border);
+    border-radius: 999px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-strong);
+    box-shadow: 0 0 8px var(--accent-strong);
 }
 
 .battery-status {
-    display: block;
-    margin-top: 6px;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: 700;
     color: var(--text-secondary);
 }
 
-.battery-time {
-    display: block;
-    margin-top: 8px;
-    font-size: 0.8rem;
-    letter-spacing: 0.08em;
+.progress-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: auto;
+}
+
+.footer-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.1em;
     color: var(--text-muted);
 }
 
-.progress-status {
-    width: 100%;
-    text-align: center;
-}
-
-.status-text {
-    margin: 0 0 6px 0;
-    font-size: 0.95rem;
+.metric-value {
+    font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
 }
 
-.time-remaining {
-    margin: 0;
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-}
-
-.progress-steps-mini {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.step-indicator {
-    padding: 8px 6px;
-    background: rgba(148, 163, 184, 0.08);
-    border: 1px solid rgba(148, 163, 184, 0.14);
+.mini-progress-track {
+    height: 6px;
+    background: var(--surface-muted);
     border-radius: 999px;
-    text-align: center;
-    font-size: 0.74rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    transition: all 0.3s ease;
+    overflow: hidden;
+    border: 1px solid var(--surface-border);
 }
 
-.step-indicator.completed {
-    background: linear-gradient(135deg, var(--accent-strong), #0f766e);
-    border-color: rgba(20, 184, 166, 0.4);
-    color: white;
-    box-shadow: 0 8px 18px rgba(20, 184, 166, 0.16);
+.track-fill {
+    height: 100%;
+    background: var(--accent-strong);
+    box-shadow: 0 0 10px var(--accent-soft);
+    border-radius: 999px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.battery-visualizer.is-charging .battery-ring-progress {
-    animation: ringPulse 1.6s ease-in-out infinite;
+/* Status variants */
+.status-payment-required .status-dot {
+    background: hsl(var(--destructive));
+    box-shadow: 0 0 8px hsl(var(--destructive));
 }
 
-@keyframes ringPulse {
-    0%,
-    100% {
-        filter: drop-shadow(0 0 0 rgba(20, 184, 166, 0));
-    }
-    50% {
-        filter: drop-shadow(0 0 8px rgba(20, 184, 166, 0.32));
-    }
+.status-charge-complete .status-dot {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
 }
 
 @media (max-width: 600px) {
     .battery-visualizer {
-        padding: 18px;
+        padding: 24px;
     }
-
-    .vehicle-info {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .station {
-        text-align: left;
-    }
-
-    .battery-orbit {
-        width: min(100%, 220px);
-    }
-
-    .battery-ring-center {
-        inset: 20%;
-        padding: 14px;
-    }
-
     .battery-percentage {
-        font-size: 2rem;
+        font-size: 2.8rem;
     }
-
-    .battery-status {
-        font-size: 0.88rem;
-    }
-
-    .progress-steps-mini {
-        gap: 6px;
-    }
-
-    .step-indicator {
-        font-size: 0.68rem;
-        padding: 7px 4px;
-    }
-}
-
-.battery-visualizer.status-pending {
-    border-left: 4px solid #f59e0b;
-}
-
-.battery-visualizer.status-charging {
-    border-left: 4px solid var(--accent-strong);
-}
-
-.battery-visualizer.status-completed {
-    border-left: 4px solid #4caf50;
-}
-
-.battery-visualizer.status-paid {
-    border-left: 4px solid #8aa4ff;
 }

@@ -6,7 +6,8 @@ import { calculateDistance, formatDistance, getBearing } from '../utils/Geoutils
 
 const DEFAULT_CENTER = [35.2975, 9.8744];
 const DEFAULT_ZOOM = 10;
-const LIGHT_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const DARK_TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const LIGHT_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 const ROUTE_MODES = {
     driving: 'driving',
     walking: 'walking',
@@ -140,6 +141,23 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState(null);
+    const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') || 'dark');
+    const tileLayerRef = useRef(null);
+
+    useEffect(() => {
+        const handleThemeChange = (e) => {
+            const newTheme = e.detail;
+            setTheme(newTheme);
+
+            if (mapInstanceRef.current && tileLayerRef.current) {
+                const newUrl = newTheme === 'light' ? LIGHT_TILE_URL : DARK_TILE_URL;
+                tileLayerRef.current.setUrl(newUrl);
+            }
+        };
+
+        window.addEventListener('theme-changed', handleThemeChange);
+        return () => window.removeEventListener('theme-changed', handleThemeChange);
+    }, []);
 
     const clearRouteLayer = useCallback(() => {
         if (routeLayerRef.current && mapInstanceRef.current) {
@@ -513,7 +531,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 zoomControl: true,
             }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
-            L.tileLayer(LIGHT_TILE_URL, {
+            tileLayerRef.current = L.tileLayer(theme === 'light' ? LIGHT_TILE_URL : DARK_TILE_URL, {
                 attribution: '&copy; OpenStreetMap contributors',
                 maxZoom: 19,
             }).addTo(mapInstanceRef.current);
