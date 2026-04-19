@@ -3,11 +3,10 @@ import { motion } from "framer-motion";
 import { Button } from "../ui/button.js";
 import {
   ArrowRight,
-  BatteryCharging,
   ChevronDown,
   Zap,
 } from "lucide-react";
-import darkHeroImage from "../../assets/hero-charging.jpg";
+import darkHeroImage from "../../assets/premium-dark-hero.png";
 import lightHeroImage from "../../assets/Light Mode Image.jpeg";
 import { getStoredTheme } from "../../utils/theme";
 
@@ -29,124 +28,149 @@ const HeroSection = ({ onReserve }) => {
       {/* Background & Gradients */}
       <div className="absolute inset-0">
         <motion.div
-            initial={{ scale: 1.05 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 10, ease: "easeOut" }}
-            className="w-full h-full"
+          initial={{ scale: 1.05 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 10, ease: "easeOut" }}
+          className="w-full h-full"
         >
-            <img
+          <img
             src={theme === 'light' ? lightHeroImage : darkHeroImage}
-            alt="Tesla charging at a futuristic station"
-            className={`h-full w-full object-cover transition-all duration-700 ${
-                theme === "light" 
-                ? "brightness-[0.95] contrast-[1.1] saturate-[1.1] mix-blend-normal" 
-                : "brightness-75 contrast-[1.1] saturate-[1.1]"
-            }`}
+            alt="Cinematic Tesla charging experience"
+            className={`h-full w-full object-cover transition-all duration-1000 ${theme === "light"
+                ? "brightness-[0.95] contrast-[1.1] saturate-[1.1]"
+                : "brightness-[0.85] contrast-[1.05] saturate-[1.05]"
+              }`}
             width={1920}
             height={1080}
-            />
+          />
         </motion.div>
-        <div className={`absolute inset-0 transition-opacity duration-700 ${
-            theme === 'light'
-            ? 'bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.08)_40%,rgba(0,0,0,0.2)_100%)]'
-            : 'bg-[radial-gradient(circle_at_center,rgba(0,255,240,0.1)_0%,rgba(0,0,0,0.4)_40%,rgba(0,0,0,0.9)_100%)]'
-        }`} />
-        <div className={`absolute inset-0 bg-gradient-to-b transition-all duration-700 ${
-            theme === 'light'
-            ? 'from-black/10 via-background/10 to-background/95'
-            : 'from-background/30 via-background/60 to-background'
-        }`} />
-        <div className="absolute inset-0 bg-grid-pattern opacity-[0.1]" />
 
-        
-        {/* Animated Particles */}
-        <motion.div 
-            animate={{ y: [0, -20, 0], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute left-[15%] top-[25%] h-[400px] w-[400px] rounded-full bg-primary/20 blur-[140px]" 
-        />
-        <motion.div 
-            animate={{ y: [0, 30, 0], opacity: [0.2, 0.5, 0.2] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute right-[10%] bottom-[20%] h-[300px] w-[300px] rounded-full bg-primary/10 blur-[120px]" 
-        />
+        {/* Left-to-right fade for readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/30 to-transparent" />
+        <div className={`absolute inset-0 bg-gradient-to-b transition-all duration-700 ${theme === 'light'
+            ? 'from-black/20 via-transparent to-background/90'
+            : 'from-transparent via-transparent to-background/70'
+          }`} />
       </div>
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-6 pt-28 pb-16">
+      {/* Left-aligned content — vertically centered with slight upward offset */}
+      <div className="relative z-10 flex min-h-screen items-center justify-start px-8 sm:px-16 md:px-24">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto flex w-full max-w-5xl flex-col items-center text-center"
+          initial={{ opacity: 0, x: -40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="flex max-w-lg flex-col items-start text-left -mt-16"
         >
-          <motion.div 
-             initial={{ opacity: 0, scale: 0.8 }}
-             animate={{ opacity: 1, scale: 1 }}
-             transition={{ delay: 0.3, duration: 0.6 }}
-             className="mb-8 inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2.5 backdrop-blur-md shadow-[0_0_20px_rgba(0,255,240,0.15)] group hover:bg-primary/20 transition-colors cursor-default"
+          {/* Tesla Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, duration: 0.6 }}
+            className="mb-6 flex items-center gap-3"
           >
-            <BatteryCharging className="h-5 w-5 text-primary drop-shadow-[0_0_8px_rgba(0,255,240,0.8)] animate-pulse" />
-            <span className="text-xs font-bold tracking-[0.4em] uppercase text-primary/95">
-              Next-Gen Precision
+            {/* Tesla "T" Shield Icon */}
+            <svg viewBox="0 0 342 512" className="h-8 w-auto fill-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" xmlns="http://www.w3.org/2000/svg">
+              <path d="M171 0C76.9 0 0 76.9 0 171c0 73.8 47.1 137 113.7 160.3L171 512l57.3-180.7C295 307 342 243.8 342 171 342 76.9 265.1 0 171 0zm0 48.2c16.7 0 32.8 2.7 47.9 7.7C189.6 67.2 171 82 171 82s-18.6-14.8-47.9-26.1c15.1-5 31.2-7.7 47.9-7.7zM54.6 88.3C85 100.8 171 136 171 136S257 100.8 287.4 88.3C310.6 109.1 326 139.3 326 171c0 8.4-.9 16.6-2.6 24.5C295.4 185.8 247 175 171 175s-124.4 10.8-152.4 20.5C16.9 187.6 16 179.4 16 171c0-31.7 15.4-61.9 38.6-82.7z" />
+            </svg>
+
+            {/* Wordmark */}
+            <span
+              style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: "0.45em" }}
+              className="text-sm font-semibold uppercase text-white/70"
+            >
+              TESLA CHARGE
+            </span>
+
+            {/* Divider */}
+            <div className="h-4 w-px bg-white/20" />
+
+            <span
+              style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: "0.3em" }}
+              className="text-[10px] uppercase text-primary/80 font-medium"
+            >
+              Supercharger Network
             </span>
           </motion.div>
 
-          <p className="mb-6 text-sm font-semibold tracking-[0.6em] uppercase text-primary/70 sm:text-base">
-            The extraordinary standard
-          </p>
+          {/* Main Description */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.7 }}
+            className="mb-8"
+          >
+            <h2
+              style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: "-0.01em" }}
+              className="mb-3 text-3xl font-light leading-tight text-white/90 sm:text-4xl md:text-[2.6rem]"
+            >
+              Reserve your charge.{" "}
+              <br />
+              <span
+                style={{ letterSpacing: "-0.02em" }}
+                className="font-extrabold text-white"
+              >
+                Own the road.
+              </span>
+            </h2>
+            <div className="mb-4 h-px w-16 bg-primary/60" />
+            <p
+              style={{ fontFamily: "'Inter', sans-serif", letterSpacing: "0.01em" }}
+              className="text-sm leading-[1.9] text-white/45 sm:text-[0.95rem]"
+            >
+              Seamless identity validation.
+              <br />
+              Next-generation charging infrastructure.
+              <br />
+              Cinematic reservation workflows.
+            </p>
+          </motion.div>
 
-          <h1 className="font-display text-7xl font-extrabold leading-[0.82] tracking-tight text-foreground sm:text-8xl lg:text-[9rem]">
-            <span className={`block transition-colors duration-700 ${theme === 'light' ? 'text-foreground' : 'text-white/95'} drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]`}>POWER</span>
-            <span className="block text-gradient-cyan glow-text mt-2">UNLIMITED</span>
-          </h1>
-
-          <p className="mt-8 max-w-2xl text-base leading-relaxed text-muted-foreground/90 sm:text-lg lg:text-[1.4rem] font-medium opacity-90">
-            A symphonic blend of speed, seamless identity validation, and cinematic reservation workflows.
-          </p>
-
-          <motion.div 
-             initial={{ opacity: 0, y: 20 }}
-             animate={{ opacity: 1, y: 0 }}
-             transition={{ delay: 0.5, duration: 0.6 }}
-             className="mt-12 flex w-full flex-col gap-6 sm:w-auto sm:flex-row sm:items-center"
+          {/* Action Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+            className="flex flex-col gap-4 sm:flex-row sm:items-center"
           >
             <Button
               variant="hero"
               size="xl"
               onClick={onReserve}
-              className="h-16 min-w-[280px] rounded-lg px-10 text-lg uppercase tracking-[0.15em] font-bold shadow-[0_0_40px_rgba(0,255,240,0.3)] hover:shadow-[0_0_60px_rgba(0,255,240,0.5)] border border-primary/50 relative overflow-hidden group"
+              className="h-14 min-w-[240px] rounded-md px-10 text-sm uppercase tracking-[0.2em] font-bold shadow-[0_0_30px_rgba(0,255,240,0.25)] hover:shadow-[0_0_50px_rgba(0,255,240,0.45)] border border-primary/40 relative overflow-hidden group backdrop-blur-sm"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-              <Zap className="h-5 w-5 mr-3 group-hover:animate-bounce" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              <Zap className="h-4 w-4 mr-2 group-hover:animate-bounce" />
               Reserve Now
             </Button>
             <Button
-              variant="heroOutline"
-              size="xl"
+              variant="ghost"
               onClick={scrollToFeatures}
-              className="h-16 min-w-[280px] rounded-lg border-white/10 bg-white/5 hover:bg-white/10 px-10 text-lg uppercase tracking-[0.15em] text-foreground backdrop-blur-xl transition-all duration-300"
+              className="h-14 min-w-[200px] rounded-md px-10 text-sm uppercase tracking-[0.2em] text-white/60 hover:text-white hover:bg-white/5 border border-white/10 backdrop-blur-sm transition-all duration-300"
             >
-              Explore Experience
-              <ArrowRight className="h-5 w-5 ml-3" />
+              Explore
+              <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </motion.div>
         </motion.div>
       </div>
 
+      {/* Scroll indicator */}
       <motion.button
         type="button"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 1 }}
         onClick={scrollToFeatures}
-        className="absolute bottom-10 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-3 text-muted-foreground transition-colors hover:text-white group"
+        className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2 transition-colors hover:text-white group"
       >
-        <span className="text-xs font-bold tracking-[0.4em] uppercase text-white/50 group-hover:text-white transition-colors">Scroll</span>
+        <span className="text-[9px] font-bold tracking-[0.5em] uppercase text-white/25 group-hover:text-white/50 transition-colors">
+          Scroll
+        </span>
         <motion.div
-             animate={{ y: [0, 8, 0] }}
-             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         >
-             <ChevronDown className="h-6 w-6 text-primary drop-shadow-[0_0_10px_rgba(0,255,240,0.5)]" />
+          <ChevronDown className="h-4 w-4 text-primary/40 group-hover:text-primary transition-colors" />
         </motion.div>
       </motion.button>
     </section>

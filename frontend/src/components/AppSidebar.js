@@ -1,12 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { Sun, Moon } from 'lucide-react';
 import './styles/AppSidebar.css';
 import { getVehicleFromToken } from '../utils/authVehicle';
+import { getStoredTheme, applyTheme } from '../utils/theme';
 
 const AppSidebar = () => {
     const navigate = useNavigate();
     const tokenVehicle = getVehicleFromToken();
     const [vehicle, setVehicle] = useState(tokenVehicle);
+    const [theme, setTheme] = useState(getStoredTheme());
+
+    const toggleTheme = () => {
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        applyTheme(newTheme, true);
+    };
+
+    useEffect(() => {
+        const syncTheme = (e) => setTheme(e.detail);
+        window.addEventListener('theme-changed', syncTheme);
+        return () => window.removeEventListener('theme-changed', syncTheme);
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -48,7 +63,7 @@ const AppSidebar = () => {
         return () => {
             isMounted = false;
         };
-    }, [tokenVehicle?.id, tokenVehicle?.matricule]);
+    }, [tokenVehicle?.id, tokenVehicle?.matricule, tokenVehicle?.model]);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -96,6 +111,14 @@ const AppSidebar = () => {
             </nav>
 
             <div className="app-sidebar-footer">
+                <button 
+                  className="app-sidebar-theme-toggle" 
+                  onClick={toggleTheme}
+                  title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                >
+                    {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                    <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                </button>
                 {vehicle?.matricule && <div className="app-sidebar-chip">{vehicle.matricule}</div>}
                 <button className="app-sidebar-logout" onClick={handleLogout}>
                     Logout

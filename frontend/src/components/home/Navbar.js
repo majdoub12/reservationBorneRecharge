@@ -19,8 +19,8 @@ const Navbar = ({ onReserve }) => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
     
     // Sync initial state and listen for changes
-    const syncTheme = () => setTheme(getStoredTheme());
-    window.addEventListener("theme-changed", (e) => setTheme(e.detail));
+    const syncTheme = (e) => setTheme(e.detail);
+    window.addEventListener("theme-changed", syncTheme);
     
     window.addEventListener("scroll", handleScroll);
     return () => {
