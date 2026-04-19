@@ -1,16 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../ui/button.js";
-import { Zap, Menu, X, BatteryCharging } from "lucide-react";
+import { Sun, Moon, Zap, Menu, X, BatteryCharging } from "lucide-react";
+import { getStoredTheme, applyTheme } from "../../utils/theme.js";
 
 const Navbar = ({ onReserve }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [theme, setTheme] = useState(getStoredTheme());
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    applyTheme(newTheme);
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
+    
+    // Sync initial state and listen for changes
+    const syncTheme = () => setTheme(getStoredTheme());
+    window.addEventListener("theme-changed", (e) => setTheme(e.detail));
+    
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("theme-changed", syncTheme);
+    };
   }, []);
 
   return (
@@ -78,6 +94,31 @@ const Navbar = ({ onReserve }) => {
             <Zap className="w-4 h-4 mr-2" />
             <span className="tracking-widest uppercase text-sm font-semibold">Reserve Now</span>
           </Button>
+
+          {/* Theme Toggle Button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleTheme}
+            className="relative flex items-center justify-center h-10 w-10 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10 transition-colors shadow-lg overflow-hidden group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={theme}
+                initial={{ y: 20, opacity: 0, rotate: 45 }}
+                animate={{ y: 0, opacity: 1, rotate: 0 }}
+                exit={{ y: -20, opacity: 0, rotate: -45 }}
+                transition={{ duration: 0.3, ease: "anticipate" }}
+              >
+                {theme === "light" ? (
+                  <Moon className="h-5 w-5 text-foreground/80" />
+                ) : (
+                  <Sun className="h-5 w-5 text-primary" />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </motion.button>
         </div>
 
         {/* Mobile menu toggle */}
@@ -129,6 +170,26 @@ const Navbar = ({ onReserve }) => {
             >
               <Zap className="w-4 h-4 mr-2" />
               Reserve Now
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full h-12 flex items-center justify-center gap-3 bg-white/5 border-white/10 backdrop-blur-md"
+              onClick={() => {
+                toggleTheme();
+              }}
+            >
+              {theme === "light" ? (
+                <>
+                  <Moon className="h-5 w-5" />
+                  <span className="tracking-widest uppercase text-sm font-semibold">Dark Mode</span>
+                </>
+              ) : (
+                <>
+                  <Sun className="h-5 w-5 text-primary" />
+                  <span className="tracking-widest uppercase text-sm font-semibold">Light Mode</span>
+                </>
+              )}
             </Button>
           </motion.div>
         )}

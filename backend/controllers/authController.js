@@ -453,7 +453,10 @@ exports.verifyOTP = async (req, res) => {
     const model = vehicle?.model || null;
 
     const result = await pool.query(
-      'SELECT *, EXTRACT(EPOCH FROM (LOCALTIMESTAMP - created_at))/60 AS db_diff_minutes FROM otps WHERE vehicle_id=$1 AND code=$2 AND is_used=false AND expired=false',
+      `SELECT *, 
+       (created_at > NOW() - INTERVAL '5 minutes') as is_fresh
+       FROM otps 
+       WHERE vehicle_id=$1 AND code=$2 AND is_used=false AND expired=false`,
       [vehicleId, code]
     );
 
@@ -462,11 +465,10 @@ exports.verifyOTP = async (req, res) => {
     }
 
     const otp = result.rows[0];
-    const diffMinutes = parseFloat(otp.db_diff_minutes);
 
-    if (diffMinutes > 5) {
+    if (!otp.is_fresh) {
       await pool.query('DELETE FROM otps WHERE id=$1', [otp.id]);
-      return res.status(400).json({ message: `OTP expired (${Math.round(diffMinutes)} minutes ago)` });
+      return res.status(400).json({ message: 'OTP expired' });
     }
 
     await pool.query('DELETE FROM otps WHERE id=$1', [otp.id]);
@@ -487,35 +489,36 @@ exports.verifyForeignOTP = async (req, res) => {
   let targetVehicleId = vehicleId;
 
   try {
-    let otpResult;
-    if (vehicleId) {
-      otpResult = await pool.query(
-        'SELECT *, EXTRACT(EPOCH FROM (LOCALTIMESTAMP - created_at))/60 AS db_diff_minutes FROM otps WHERE vehicle_id=$1 AND code=$2 AND is_used=false AND expired=false',
-        [vehicleId, code]
+    if (!targetVehicleId) {
+      if (!email) {
+        return res.status(400).json({ message: 'vehicleId or email is required' });
+      }
+
+      const emailRes = await pool.query(
+        'SELECT vehicle_id FROM emails WHERE address=$1 LIMIT 1',
+        [email]
       );
-    } else if (email) {
-      // Find latest valid OTP for ANY vehicle associated with this email
-      otpResult = await pool.query(
-        `SELECT o.*, EXTRACT(EPOCH FROM (LOCALTIMESTAMP - o.created_at))/60 AS db_diff_minutes 
-         FROM otps o 
-         JOIN emails e ON o.vehicle_id = e.vehicle_id 
-         WHERE e.address = $1 AND o.code = $2 AND o.is_used = false AND o.expired = false
-         ORDER BY o.created_at DESC LIMIT 1`,
-        [email, code]
-      );
-    } else {
-      return res.status(400).json({ message: 'vehicleId or email is required' });
+      if (emailRes.rows.length === 0) {
+        return res.status(404).json({ message: 'Vehicle not found for the given email' });
+      }
+      targetVehicleId = emailRes.rows[0].vehicle_id;
     }
+
+    const otpResult = await pool.query(
+      `SELECT *, 
+       (created_at > NOW() - INTERVAL '5 minutes') as is_fresh
+       FROM otps 
+       WHERE vehicle_id=$1 AND code=$2 AND is_used=false AND expired=false`,
+      [targetVehicleId, code]
+    );
 
     if (otpResult.rows.length === 0) {
       return res.status(400).json({ message: 'Invalid or already used OTP' });
     }
 
     const otp = otpResult.rows[0];
-    targetVehicleId = otp.vehicle_id; // Update targetVehicleId from the found OTP
-    const diffMinutes = parseFloat(otp.db_diff_minutes);
 
-    if (diffMinutes > 5) {
+    if (!otp.is_fresh) {
       await pool.query('DELETE FROM otps WHERE id=$1', [otp.id]);
 
       // Delete temporary foreign vehicle if OTP expired and it is not yet verified
@@ -524,7 +527,7 @@ exports.verifyForeignOTP = async (req, res) => {
         await pool.query('DELETE FROM vehicles WHERE id=$1', [targetVehicleId]);
       }
 
-      return res.status(400).json({ message: `OTP expired (${Math.round(diffMinutes)} minutes ago)` });
+      return res.status(400).json({ message: 'OTP expired' });
     }
 
     await pool.query('UPDATE otps SET is_used=true WHERE id=$1', [otp.id]);

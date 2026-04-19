@@ -37,14 +37,27 @@ const HeroSection = ({ onReserve }) => {
             <img
             src={theme === 'light' ? lightHeroImage : darkHeroImage}
             alt="Tesla charging at a futuristic station"
-            className="h-full w-full object-cover"
+            className={`h-full w-full object-cover transition-all duration-700 ${
+                theme === "light" 
+                ? "brightness-[0.95] contrast-[1.1] saturate-[1.1] mix-blend-normal" 
+                : "brightness-75 contrast-[1.1] saturate-[1.1]"
+            }`}
             width={1920}
             height={1080}
             />
         </motion.div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,255,240,0.1)_0%,rgba(0,0,0,0.4)_40%,rgba(0,0,0,0.9)_100%)]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/60 to-background" />
+        <div className={`absolute inset-0 transition-opacity duration-700 ${
+            theme === 'light'
+            ? 'bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.08)_40%,rgba(0,0,0,0.2)_100%)]'
+            : 'bg-[radial-gradient(circle_at_center,rgba(0,255,240,0.1)_0%,rgba(0,0,0,0.4)_40%,rgba(0,0,0,0.9)_100%)]'
+        }`} />
+        <div className={`absolute inset-0 bg-gradient-to-b transition-all duration-700 ${
+            theme === 'light'
+            ? 'from-black/10 via-background/10 to-background/95'
+            : 'from-background/30 via-background/60 to-background'
+        }`} />
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.1]" />
+
         
         {/* Animated Particles */}
         <motion.div 
@@ -83,7 +96,7 @@ const HeroSection = ({ onReserve }) => {
           </p>
 
           <h1 className="font-display text-7xl font-extrabold leading-[0.82] tracking-tight text-foreground sm:text-8xl lg:text-[9rem]">
-            <span className="block text-white/95 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">POWER</span>
+            <span className={`block transition-colors duration-700 ${theme === 'light' ? 'text-foreground' : 'text-white/95'} drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]`}>POWER</span>
             <span className="block text-gradient-cyan glow-text mt-2">UNLIMITED</span>
           </h1>
 
