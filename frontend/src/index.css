@@ -6,58 +6,58 @@
 
 @layer base {
   :root {
-    --background: 240 12% 4%;
+    --background: 240 14% 6%;
     --foreground: 210 40% 98%;
 
-    --card: 240 12% 6%;
+    --card: 240 12% 7%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 240 12% 6%;
+    --popover: 240 12% 7%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 187 100% 55%;
+    --primary: 191 78% 54%;
     --primary-foreground: 240 12% 4%;
 
-    --secondary: 240 10% 12%;
+    --secondary: 240 10% 14%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 240 10% 12%;
+    --muted: 240 9% 14%;
     --muted-foreground: 215 15% 65%;
 
-    --accent: 187 100% 55%;
+    --accent: 191 78% 54%;
     --accent-foreground: 240 12% 4%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 240 10% 16%;
-    --input: 240 10% 16%;
-    --ring: 187 100% 55%;
+    --border: 240 9% 18%;
+    --input: 240 9% 18%;
+    --ring: 191 78% 54%;
 
     --radius: 1rem;
 
-    --tesla-cyan: 187 100% 55%;
+    --tesla-cyan: 191 78% 54%;
     --tesla-dark: 240 12% 4%;
     --tesla-card: 240 12% 7%;
     --tesla-glass: 240 10% 10%;
-    --tesla-glow: 187 100% 55%;
+    --tesla-glow: 191 78% 54%;
     --tesla-text-secondary: 215 15% 65%;
 
-    --gradient-hero: linear-gradient(180deg, hsl(240 12% 4%) 0%, hsl(240 15% 2%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(187 100% 85%) 0%, hsl(187 100% 55%) 50%, hsl(190 90% 40%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(240 14% 6%) 0%, hsl(240 16% 4%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(191 78% 84%) 0%, hsl(191 78% 54%) 50%, hsl(197 60% 44%) 100%);
     --gradient-glass: linear-gradient(135deg, hsla(0 0% 100% / 0.1), hsla(0 0% 100% / 0.02));
 
-    --shadow-glow: 0 0 80px hsla(187 100% 55% / 0.25);
-    --shadow-card: 0 24px 60px hsla(0 0% 0% / 0.5);
+    --shadow-glow: 0 0 60px hsla(191 78% 54% / 0.16);
+    --shadow-card: 0 24px 60px hsla(0 0% 0% / 0.42);
 
     --sidebar-background: 240 12% 5%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 187 100% 55%;
+    --sidebar-primary: 191 78% 54%;
     --sidebar-primary-foreground: 240 12% 4%;
     --sidebar-accent: 240 10% 12%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 240 10% 16%;
-    --sidebar-ring: 187 100% 55%;
+    --sidebar-ring: 191 78% 54%;
   }
 
   :root[data-theme="light"] {
@@ -70,7 +70,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 15% 10%;
 
-    --primary: 187 90% 40%;
+    --primary: 198 48% 46%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 20% 94%;
@@ -79,27 +79,27 @@
     --muted: 210 20% 94%;
     --muted-foreground: 220 15% 45%;
 
-    --accent: 187 90% 40%;
+    --accent: 198 48% 46%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 80% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 20% 88%;
-    --input: 214 20% 88%;
-    --ring: 187 90% 40%;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 198 48% 46%;
 
-    --shadow-glow: 0 0 60px hsla(187 90% 40% / 0.15);
-    --shadow-card: 0 20px 50px hsla(240 15% 10% / 0.08);
+    --shadow-glow: 0 0 48px hsla(198 48% 46% / 0.1);
+    --shadow-card: 0 20px 48px hsla(240 15% 10% / 0.07);
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 240 15% 10%;
-    --sidebar-primary: 187 90% 40%;
+    --sidebar-primary: 198 48% 46%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 20% 94%;
     --sidebar-accent-foreground: 240 15% 10%;
     --sidebar-border: 214 20% 88%;
-    --sidebar-ring: 187 90% 40%;
+    --sidebar-ring: 198 48% 46%;
   }
 
   * {
@@ -110,15 +110,40 @@
     scroll-behavior: smooth;
   }
 
+  html[data-theme-transitioning="true"],
+  html[data-theme-transitioning="true"] body,
+  html[data-theme-transitioning="true"] #root,
+  html[data-theme-transitioning="true"] .page-shell,
+  html[data-theme-transitioning="true"] .glass-card,
+  html[data-theme-transitioning="true"] .glass-card-hover,
+  html[data-theme-transitioning="true"] .glass-panel,
+  html[data-theme-transitioning="true"] .feature-card,
+  html[data-theme-transitioning="true"] button,
+  html[data-theme-transitioning="true"] a,
+  html[data-theme-transitioning="true"] img,
+  html[data-theme-transitioning="true"] svg,
+  html[data-theme-transitioning="true"] * {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow, opacity, filter, transform;
+    transition-duration: 450ms !important;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     min-height: 100vh;
     background:
-      radial-gradient(circle at top, hsla(187 90% 58% / 0.12), transparent 28%),
+      radial-gradient(circle at top, hsla(191 70% 58% / 0.08), transparent 28%),
       linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
     font-family: "Inter", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  :root[data-theme="light"] body {
+    background:
+      radial-gradient(circle at top, hsla(198 42% 58% / 0.05), transparent 30%),
+      radial-gradient(circle at bottom right, hsla(198 35% 55% / 0.03), transparent 32%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
   }
 
   body::before {
@@ -131,7 +156,7 @@
       linear-gradient(currentColor 1px, transparent 1px);
     background-size: 72px 72px;
     mask-image: radial-gradient(circle at center, black 34%, transparent 88%);
-    opacity: 0.05;
+    opacity: 0.025;
     color: inherit;
   }
 
@@ -171,6 +196,10 @@
     background-image: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(187 100% 80%) 45%, hsl(187 100% 55%) 100%);
   }
 
+  :root[data-theme="light"] .text-gradient-cyan {
+    background-image: linear-gradient(135deg, hsl(240 15% 14%) 0%, hsl(191 40% 48%) 52%, hsl(191 35% 56%) 100%);
+  }
+
   .text-gradient-primary {
     @apply bg-clip-text text-transparent;
     background-image: var(--gradient-accent);
@@ -189,7 +218,7 @@
 
   .glass-card-hover:hover {
     @apply border-primary/40;
-    box-shadow: inset 0 1px 1px hsla(0 0% 100% / 0.2), var(--shadow-glow), var(--shadow-card);
+    box-shadow: inset 0 1px 1px hsla(0 0% 100% / 0.16), var(--shadow-glow), var(--shadow-card);
     transform: translateY(-6px) scale(1.01);
   }
 
@@ -202,7 +231,11 @@
   }
 
   .glow-text {
-    text-shadow: 0 0 20px hsla(187 100% 55% / 0.5);
+    text-shadow: 0 0 16px hsla(191 78% 54% / 0.28);
+  }
+
+  :root[data-theme="light"] .glow-text {
+    text-shadow: 0 0 12px hsla(198 48% 46% / 0.12);
   }
 
   .bg-grid-pattern {

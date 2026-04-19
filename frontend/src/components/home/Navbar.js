@@ -88,9 +88,13 @@ const Navbar = ({ onReserve }) => {
             variant="hero"
             size="default"
             onClick={onReserve}
-            className="relative overflow-hidden group border border-primary/30 shadow-[0_0_20px_rgba(0,255,240,0.15)] hover:shadow-[0_0_40px_rgba(0,255,240,0.3)] transition-all duration-500"
+            className={`relative overflow-hidden group transition-all duration-500 ${
+              theme === "light"
+                ? "border border-slate-200/80 bg-white/74 text-slate-900 shadow-[0_0_20px_hsla(215,25%,35%,0.10)] hover:border-slate-300 hover:bg-white/88 hover:shadow-[0_0_40px_hsla(215,25%,35%,0.14)]"
+                : "border border-primary/30 shadow-[0_0_20px_rgba(0,255,240,0.15)] hover:shadow-[0_0_40px_rgba(0,255,240,0.3)]"
+            }`}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+            <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-sky-100/60 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out ${theme === "light" ? "opacity-60" : ""}`} />
             <Zap className="w-4 h-4 mr-2" />
             <span className="tracking-widest uppercase text-sm font-semibold">Reserve Now</span>
           </Button>

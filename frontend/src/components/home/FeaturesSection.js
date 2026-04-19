@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import { Clock, MapPin, Shield, Zap } from "lucide-react";
+import { getStoredTheme } from "../../utils/theme";
 
 const features = [
   {
@@ -56,6 +57,14 @@ function FeatureCard({ feature, index }) {
   const { ref, visible } = useReveal(0.2);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  const [theme, setTheme] = useState(getStoredTheme());
+  const isLight = theme === "light";
+
+  useEffect(() => {
+    const handleThemeChange = (e) => setTheme(e.detail);
+    window.addEventListener("theme-changed", handleThemeChange);
+    return () => window.removeEventListener("theme-changed", handleThemeChange);
+  }, []);
 
   const handleMouseMove = (event) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -79,7 +88,7 @@ function FeatureCard({ feature, index }) {
       initial={false}
       animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
       transition={{ duration: 0.7, delay: index * 0.15, ease: [0.16, 1, 0.3, 1] }}
-      className="group glass-card-hover p-8 relative overflow-hidden"
+      className={`group glass-card-hover p-8 relative overflow-hidden ${isLight ? "bg-white/70" : ""}`}
       style={{
         transform: visible
           ? `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`
@@ -101,10 +110,10 @@ function FeatureCard({ feature, index }) {
       <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-transparent border border-white/5 text-primary shadow-[0_0_15px_rgba(0,255,240,0.2)] transition-all duration-500 group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(0,255,240,0.4)]">
         <feature.icon className="h-7 w-7 drop-shadow-[0_0_8px_rgba(0,255,240,0.8)]" />
       </div>
-      <h3 className="mb-3 font-display text-lg font-bold tracking-wide text-foreground group-hover:text-white transition-colors duration-300">
+      <h3 className={`mb-3 font-display text-lg font-bold tracking-wide transition-colors duration-300 ${isLight ? "text-slate-900 group-hover:text-slate-950" : "text-foreground group-hover:text-white"}`}>
         {feature.title}
       </h3>
-      <p className="font-body text-sm leading-relaxed text-muted-foreground group-hover:text-white/80 transition-colors duration-300">
+      <p className={`font-body text-sm leading-relaxed transition-colors duration-300 ${isLight ? "text-slate-600 group-hover:text-slate-700" : "text-muted-foreground group-hover:text-white/80"}`}>
         {feature.description}
       </p>
     </motion.div>

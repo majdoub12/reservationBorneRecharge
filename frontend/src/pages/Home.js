@@ -212,6 +212,7 @@ import Navbar from "../components/home/Navbar.js";
 import HeroSection from "../components/home/HeroSection.js";
 import FeaturesSection from "../components/home/FeaturesSection.js";
 import StateSection from "../components/home/StateSection.js";
+import ContactSection from "../components/home/ContactSection.js";
 import Footer from "../components/home/Footer.js";
 import States from "../components/home/States.js";
 
@@ -229,6 +230,7 @@ const Index = () => {
       <HeroSection onReserve={handleReserve} />
       <StateSection />
       <FeaturesSection />
+      <ContactSection />
       <States />
       <Footer />
     </div>
