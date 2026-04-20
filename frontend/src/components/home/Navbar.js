@@ -9,6 +9,10 @@ const Navbar = ({ onReserve }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState(getStoredTheme());
 
+  const scrollToContact = () => {
+    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
@@ -77,9 +81,9 @@ const Navbar = ({ onReserve }) => {
              <Button
               variant="ghost"
               className="text-muted-foreground hover:text-foreground text-sm tracking-widest uppercase transition-colors"
-              onClick={() => document.getElementById("flow")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={scrollToContact}
             >
-              Flow
+              Contact
             </Button>
              <motion.div className="absolute -bottom-1 left-0 right-0 h-[2px] bg-primary origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out" />
           </div>
@@ -158,10 +162,10 @@ const Navbar = ({ onReserve }) => {
               className="justify-start text-muted-foreground w-full tracking-widest uppercase text-sm"
               onClick={() => {
                 setMobileOpen(false);
-                document.getElementById("flow")?.scrollIntoView({ behavior: "smooth" });
+                scrollToContact();
               }}
             >
-              How it works
+              Contact
             </Button>
             <Button
               variant="hero"
