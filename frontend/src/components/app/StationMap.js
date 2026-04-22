@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "../styles/StationMap.css";
+import { getStationCapacity } from "../../utils/stationBorne";
 
 const DEFAULT_CENTER = [35.2975, 9.8744];
 const DEFAULT_ZOOM = 10;
@@ -158,12 +159,12 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
             <span className="info-value">{selectedStation.address || "-"}</span>
           </div>
           <div className="info-item">
-            <span className="info-label">Available slots</span>
+            <span className="info-label">Available bornes</span>
             <span className="info-value">{selectedStation.availableSlots ?? "-"}</span>
           </div>
           <div className="info-item">
             <span className="info-label">Total chargers</span>
-            <span className="info-value">{selectedStation.totalSlots ?? selectedStation.capacity ?? "-"}</span>
+            <span className="info-value">{getStationCapacity(selectedStation) || "-"}</span>
           </div>
         </div>
       )}

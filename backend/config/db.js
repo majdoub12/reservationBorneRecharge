@@ -10,8 +10,21 @@ pool.on('error', (err) => {
     console.error('Unexpected error on idle client', err);
 });
 
-pool.connect()
-    .then(() => console.log('Connected to Supabase database!'))
-    .catch(err => console.error('Connection error', err));
+const verifyConnection = async () => {
+    const client = await pool.connect();
+    try {
+        client.on('error', (err) => {
+            console.error('Unexpected error on checked-out client', err);
+        });
 
-module.exports = pool;
+        console.log('Connected to Supabase database!');
+    } finally {
+        client.release();
+    }
+};
+
+verifyConnection().catch((err) => {
+    console.error('Connection error', err);
+});
+
+module.exports = pool;

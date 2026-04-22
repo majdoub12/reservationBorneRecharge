@@ -1,5 +1,11 @@
 import React from 'react';
 import './styles/StationList.css';
+import {
+    getStationAverageDuration,
+    getStationCapacity,
+    getStationChargingSpeed,
+    getStationTariff
+} from '../utils/stationBorne';
 
 const StationList = ({ stations, selectedStation, onSelectStation }) => {
     return (
@@ -24,19 +30,19 @@ const StationList = ({ stations, selectedStation, onSelectStation }) => {
                             <div className="station-info">
                                 <div className="info-row">
                                     <span className="info-label">Speed</span>
-                                    <span className="info-value">{station.charging_speed_kw} kW</span>
+                                    <span className="info-value">{getStationChargingSpeed(station)} kW</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label">Average time</span>
-                                    <span className="info-value">{station.average_duration_hours} h</span>
+                                    <span className="info-value">{getStationAverageDuration(station)} h</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label">Tariff</span>
-                                    <span className="info-value">{Number(station.tariff).toFixed(2)} TND</span>
+                                    <span className="info-value">{getStationTariff(station).toFixed(2)} TND</span>
                                 </div>
                                 <div className="info-row">
                                     <span className="info-label">Capacity</span>
-                                    <span className="info-value">{station.capacity} spaces</span>
+                                    <span className="info-value">{getStationCapacity(station)} spaces</span>
                                 </div>
                             </div>
 

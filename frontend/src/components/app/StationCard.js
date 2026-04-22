@@ -1,5 +1,11 @@
 import React from "react";
 import "../styles/StationList.css";
+import {
+  getStationAverageDuration,
+  getStationCapacity,
+  getStationChargingSpeed,
+  getStationTariff,
+} from "../../utils/stationBorne";
 
 const formatNumber = (value, fallback = "-") => {
   const num = Number(value);
@@ -19,20 +25,20 @@ const StationCard = ({ station, selectedStation, isSelected, onClick }) => {
       <div className="station-info">
         <div className="info-row">
           <span className="info-label">Speed</span>
-          <span className="info-value">{formatNumber(station.charging_speed_kw)} kW</span>
+          <span className="info-value">{formatNumber(getStationChargingSpeed(station))} kW</span>
         </div>
         <div className="info-row">
           <span className="info-label">Average time</span>
-          <span className="info-value">{formatNumber(station.average_duration_hours)} h</span>
+          <span className="info-value">{formatNumber(getStationAverageDuration(station))} h</span>
         </div>
         <div className="info-row">
           <span className="info-label">Tariff</span>
-          <span className="info-value">{formatNumber(station.tariff, 0).toFixed(2)} TND</span>
+          <span className="info-value">{formatNumber(getStationTariff(station), 0).toFixed(2)} TND</span>
         </div>
         <div className="info-row">
           <span className="info-label">Capacity</span>
           <span className="info-value">
-            {formatNumber(station.capacity || station.totalSlots, 0)} places
+            {formatNumber(getStationCapacity(station), 0)} places
           </span>
         </div>
       </div>

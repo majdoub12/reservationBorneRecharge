@@ -79,6 +79,28 @@ export const getSlotsByStation = async (stationId, date) => {
 };
 
 /**
+ * Récupère les bornes disponibles pour une station à une date et heure données
+ */
+export const getAvailableBornes = async (stationId, date, time) => {
+    try {
+        const formattedDate = formatDateForApi(date);
+        const response = await fetch(
+            `${API_BASE_URL}/stations/${stationId}/available-bornes?date=${formattedDate}&time=${encodeURIComponent(time)}`,
+            { headers: getAuthHeaders() }
+        );
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data.data;
+    } catch (error) {
+        console.error('Error fetching available bornes:', error);
+        throw error;
+    }
+};
+
+/**
  * Vérifie s'il y a un conflit pour une voiture à un créneau donné
  */
 export const checkConflict = async (carId, date_reserve, heur_reserve) => {
@@ -94,7 +116,8 @@ export const checkConflict = async (carId, date_reserve, heur_reserve) => {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json().catch(() => null);
+            throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
@@ -108,7 +131,7 @@ export const checkConflict = async (carId, date_reserve, heur_reserve) => {
 /**
  * Crée une nouvelle réservation
  */
-export const createReservation = async (carId, stationId, date_reserve, heur_reserve) => {
+export const createReservation = async (carId, stationId, borneId, date_reserve, heur_reserve) => {
     try {
         const response = await fetch(`${API_BASE_URL}/create`, {
             method: 'POST',
@@ -116,6 +139,7 @@ export const createReservation = async (carId, stationId, date_reserve, heur_res
             body: JSON.stringify({
                 carId,
                 stationId,
+                borneId,
                 date_reserve,
                 heur_reserve
             })

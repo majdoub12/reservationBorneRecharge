@@ -14,7 +14,11 @@ const simulateChargingProgressEnhanced = async (reservationId, stationId) => {
     try {
         // 1. Récupérer la station pour obtenir average_duration_hours
         const stationResult = await pool.query(
-            'SELECT average_duration_hours FROM stations WHERE id = $1',
+            `SELECT average_duration_hours
+             FROM borne
+             WHERE station_id = $1::uuid
+             ORDER BY tarif ASC
+             LIMIT 1`,
             [stationId]
         );
 
@@ -136,7 +140,11 @@ const getChargingStatusDetailed = async (reservationId) => {
 
     // Récupérer la durée moyenne de la station
     const stationResult = await pool.query(
-        'SELECT average_duration_hours FROM stations WHERE id = $1',
+        `SELECT average_duration_hours
+         FROM borne
+         WHERE station_id = $1::uuid
+         ORDER BY tarif ASC
+         LIMIT 1`,
         [charging.station_id]
     );
 

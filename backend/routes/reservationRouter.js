@@ -32,6 +32,12 @@ router.get('/stations/:stationId', reservationController.getStationById);
  */
 router.get('/stations/:stationId/slots', reservationController.getSlotsByStation);
 
+/**
+ * GET /api/reservations/stations/:stationId/available-bornes?date=YYYY-MM-DD&time=HH:MM:SS
+ * Récupère les bornes disponibles pour une station à une date et heure données
+ */
+router.get('/stations/:stationId/available-bornes', reservationController.getAvailableBornes);
+
 // =====================================================
 // RESERVATIONS ROUTES
 // NOTE: Specific named routes MUST come before /:reservationId

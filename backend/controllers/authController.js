@@ -98,17 +98,17 @@ async function issueForeignOTP(vehicleId, email, phone) {
   return { otpCode, deliveryErrors };
 }
 
-async function ensureForeignVehicleContacts(vehicleId, email, phone) {
+async function ensureForeignVehicleContacts(contactOwnerKey, email, phone) {
   if (email) {
     const existingEmail = await pool.query(
-      'SELECT id FROM emails WHERE vehicle_id=$1 AND address=$2 LIMIT 1',
-      [vehicleId, email]
+      'SELECT id FROM emails WHERE owner_id=$1 AND address=$2 LIMIT 1',
+      [contactOwnerKey, email]
     );
 
     if (existingEmail.rows.length === 0) {
       await pool.query(
-        'INSERT INTO emails (vehicle_id, address, is_active) VALUES ($1, $2, TRUE)',
-        [vehicleId, email]
+        'INSERT INTO emails (owner_id, address, is_active) VALUES ($1, $2, TRUE)',
+        [contactOwnerKey, email]
       );
     } else {
       await pool.query(
@@ -120,14 +120,14 @@ async function ensureForeignVehicleContacts(vehicleId, email, phone) {
 
   if (phone) {
     const existingPhone = await pool.query(
-      'SELECT id FROM telephones WHERE vehicle_id=$1 AND number=$2 LIMIT 1',
-      [vehicleId, phone]
+      'SELECT id FROM telephones WHERE owner_id=$1 AND number=$2 LIMIT 1',
+      [contactOwnerKey, phone]
     );
 
     if (existingPhone.rows.length === 0) {
       await pool.query(
-        'INSERT INTO telephones (vehicle_id, number, is_active) VALUES ($1, $2, TRUE)',
-        [vehicleId, phone]
+        'INSERT INTO telephones (owner_id, number, is_active) VALUES ($1, $2, TRUE)',
+        [contactOwnerKey, phone]
       );
     } else {
       await pool.query(
@@ -156,7 +156,7 @@ async function vehicleHasModelColumn() {
 
 async function fetchVehicleIdentityById(vehicleId) {
   const hasModelColumn = await vehicleHasModelColumn();
-  const selectColumns = ['id', 'immatricul', 'vin'];
+  const selectColumns = ['id', 'immatricul', 'vin', 'owner_id'];
 
   if (hasModelColumn) {
     selectColumns.push('model');
@@ -168,6 +168,10 @@ async function fetchVehicleIdentityById(vehicleId) {
   );
 
   return result.rows[0] || null;
+}
+
+function getContactOwnerKey(vehicle) {
+  return vehicle?.owner_id || vehicle?.id || null;
 }
 
 // ─── Tunisian Car Auth ────────────────────────────────────────────────────────
@@ -189,15 +193,16 @@ exports.tunisianAuth = async (req, res) => {
     }
 
     const vehicle = vehicleResult.rows[0];
+    const contactOwnerKey = getContactOwnerKey(vehicle);
 
     const emailResult = await pool.query(
-      'SELECT address AS value FROM emails WHERE vehicle_id=$1',
-      [vehicle.id]
+      'SELECT address AS value FROM emails WHERE owner_id=$1',
+      [contactOwnerKey]
     );
 
     const phoneResult = await pool.query(
-      'SELECT number AS value FROM telephones WHERE vehicle_id=$1',
-      [vehicle.id]
+      'SELECT number AS value FROM telephones WHERE owner_id=$1',
+      [contactOwnerKey]
     );
 
     const contacts = [
@@ -277,7 +282,7 @@ exports.foreignAuth = async (req, res) => {
         });
       }
 
-      await ensureForeignVehicleContacts(existingVehicle.id, email, phone);
+      await ensureForeignVehicleContacts(getContactOwnerKey(existingVehicle), email, phone);
 
       const existingStatus = existingVehicle.is_temporary ? 'pending_approval' : 'approved';
       const existingMessage = existingVehicle.is_temporary
@@ -315,7 +320,7 @@ exports.foreignAuth = async (req, res) => {
     );
     const tempVehicle = newVehicleResult.rows[0];
 
-    await ensureForeignVehicleContacts(tempVehicle.id, email, phone);
+    await ensureForeignVehicleContacts(getContactOwnerKey(tempVehicle), email, phone);
 
     // 4. Ask back-office to validate the foreign vehicle
     const approveUrl = `http://localhost:5000/api/auth/foreign/approve?matricule=${encodeURIComponent(matricule)}&vin=${encodeURIComponent(vin)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}`;
@@ -394,7 +399,7 @@ exports.foreignApprove = async (req, res) => {
       await pool.query('UPDATE vehicles SET is_temporary = FALSE WHERE id = $1', [vehicle.id]);
     }
 
-    await ensureForeignVehicleContacts(vehicle.id, email, phone);
+    await ensureForeignVehicleContacts(getContactOwnerKey(vehicle), email, phone);
 
     const { deliveryErrors } = await issueForeignOTP(vehicle.id, email, phone);
 
@@ -495,13 +500,13 @@ exports.verifyForeignOTP = async (req, res) => {
       }
 
       const emailRes = await pool.query(
-        'SELECT vehicle_id FROM emails WHERE address=$1 LIMIT 1',
+        'SELECT owner_id FROM emails WHERE address=$1 LIMIT 1',
         [email]
       );
       if (emailRes.rows.length === 0) {
         return res.status(404).json({ message: 'Vehicle not found for the given email' });
       }
-      targetVehicleId = emailRes.rows[0].vehicle_id;
+      targetVehicleId = emailRes.rows[0].owner_id;
     }
 
     const otpResult = await pool.query(
@@ -559,15 +564,17 @@ exports.addContact = async (req, res) => {
   }
 
   try {
+    const contactOwnerKey = getContactOwnerKey(await fetchVehicleIdentityById(vehicleId));
+
     if (contact.type === 'email') {
       await pool.query(
-        'INSERT INTO emails(vehicle_id, address) VALUES($1, $2)',
-        [vehicleId, contact.value]
+        'INSERT INTO emails(owner_id, address) VALUES($1, $2)',
+        [contactOwnerKey, contact.value]
       );
     } else {
       await pool.query(
-        'INSERT INTO telephones(vehicle_id, number) VALUES($1, $2)',
-        [vehicleId, contact.value]
+        'INSERT INTO telephones(owner_id, number) VALUES($1, $2)',
+        [contactOwnerKey, contact.value]
       );
     }
 
@@ -588,15 +595,17 @@ exports.deleteContact = async (req, res) => {
   }
 
   try {
+    const contactOwnerKey = getContactOwnerKey(await fetchVehicleIdentityById(vehicleId));
+
     if (contact.type === 'email') {
       await pool.query(
-        'DELETE FROM emails WHERE vehicle_id=$1 AND address=$2',
-        [vehicleId, contact.value]
+        'DELETE FROM emails WHERE owner_id=$1 AND address=$2',
+        [contactOwnerKey, contact.value]
       );
     } else {
       await pool.query(
-        'DELETE FROM telephones WHERE vehicle_id=$1 AND number=$2',
-        [vehicleId, contact.value]
+        'DELETE FROM telephones WHERE owner_id=$1 AND number=$2',
+        [contactOwnerKey, contact.value]
       );
     }
 
@@ -617,9 +626,10 @@ exports.getContacts = async (req, res) => {
     if (!vehicle) {
       return res.status(404).json({ message: 'Vehicle not found' });
     }
+    const contactOwnerKey = getContactOwnerKey(vehicle);
 
-    const emailResult = await pool.query('SELECT id, address AS value FROM emails WHERE vehicle_id=$1', [vehicleId]);
-    const phoneResult = await pool.query('SELECT id, number AS value FROM telephones WHERE vehicle_id=$1', [vehicleId]);
+    const emailResult = await pool.query('SELECT id, address AS value FROM emails WHERE owner_id=$1', [contactOwnerKey]);
+    const phoneResult = await pool.query('SELECT id, number AS value FROM telephones WHERE owner_id=$1', [contactOwnerKey]);
 
     const contacts = [
       ...emailResult.rows.map(r => ({ ...r, type: 'email' })),

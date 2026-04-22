@@ -18,7 +18,7 @@ const steps = [
     {
         icon: React.createElement(MapPin, { className: "w-5 h-5" }),
         title: "Station Selection",
-        desc: "Browse available charging bays. Real-time availability with map integration.",
+        desc: "Browse available charging bornes. Real-time availability with map integration.",
         tag: "Step 3",
     },
     {
@@ -40,10 +40,10 @@ const FlowSection = () => {
                         React.createElement(motion.div, { animate: { y: [0, -8, 0] }, transition: { duration: 4, repeat: Infinity, ease: "easeInOut" }, className: "absolute bottom-6 left-6 right-6 glass-card rounded-2xl p-5" },
                             React.createElement("div", { className: "flex items-center gap-3" },
                                 React.createElement("div", { className: "w-3 h-3 rounded-full bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.6)]" }),
-                                React.createElement("span", { className: "font-display text-sm font-semibold text-foreground" }, "Station Bay A12 \u2014 Available")),
+                                React.createElement("span", { className: "font-display text-sm font-semibold text-foreground" }, "Borne A12 \u2014 Available")),
                             React.createElement("div", { className: "mt-2 w-full h-1.5 rounded-full bg-secondary overflow-hidden" },
                                 React.createElement(motion.div, { initial: { width: "0%" }, whileInView: { width: "78%" }, viewport: { once: true }, transition: { duration: 1.5, delay: 0.5 }, className: "h-full rounded-full bg-gradient-to-r from-primary to-primary/60" })),
-                            React.createElement("span", { className: "text-xs text-muted-foreground mt-1 block" }, "78% network capacity")))),
+                            React.createElement("span", { className: "text-xs text-muted-foreground mt-1 block" }, "78% borne capacity")))),
                 React.createElement("div", null,
                     React.createElement(motion.div, { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, className: "mb-12" },
                         React.createElement("span", { className: "text-xs font-semibold tracking-[0.2em] uppercase text-primary mb-4 block" }, "Flow Architecture"),

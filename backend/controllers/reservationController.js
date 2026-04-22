@@ -113,6 +113,87 @@ const getSlotsByStation = async (req, res) => {
     }
 };
 
+/**
+ * GET /api/reservations/stations/:stationId/available-bornes?date=YYYY-MM-DD&time=HH:MM:SS
+ * Récupère les bornes disponibles pour une station à une date et heure données
+ */
+const getAvailableBornes = async (req, res) => {
+    try {
+        const { stationId } = req.params;
+        const { date, time } = req.query;
+
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(stationId)) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid stationId format. Expected UUID, got: ${stationId}`
+            });
+        }
+
+        if (!date || !time) {
+            return res.status(400).json({
+                success: false,
+                message: 'Date and time query parameters are required'
+            });
+        }
+
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(date)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid date format. Use YYYY-MM-DD'
+            });
+        }
+
+        const timeRegex = /^\d{2}:\d{2}(:\d{2})?$/;
+        if (!timeRegex.test(time)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid time format. Use HH:MM or HH:MM:SS'
+            });
+        }
+
+        const availableBornes = await reservationService.getAvailableBornesByStationAndDateTime(
+            stationId,
+            date,
+            time
+        );
+
+        res.status(200).json({
+            success: true,
+            message: availableBornes.length
+                ? 'Available bornes retrieved successfully'
+                : 'No available borne for the selected time',
+            data: availableBornes
+        });
+    } catch (error) {
+        console.error('Error in getAvailableBornes:', error);
+
+        if (error.message.includes('OUT_OF_OPENING_HOURS')) {
+            return res.status(409).json({
+                success: false,
+                message: 'Selected time is outside the station opening hours',
+                error: error.message,
+                stationWindow: error.stationWindow || null
+            });
+        }
+
+        if (error.message.includes('PAST_SLOT')) {
+            return res.status(409).json({
+                success: false,
+                message: 'Selected time is in the past',
+                error: error.message
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve available bornes',
+            error: error.message
+        });
+    }
+};
+
 // =====================================================
 // RESERVATIONS
 // =====================================================
@@ -156,12 +237,12 @@ const checkConflict = async (req, res) => {
  */
 const createReservation = async (req, res) => {
     try {
-        const { carId, stationId, date_reserve, heur_reserve } = req.body;
+        const { carId, stationId, borneId, date_reserve, heur_reserve } = req.body;
 
-        if (!carId || !stationId || !date_reserve || !heur_reserve) {
+        if (!carId || !stationId || !borneId || !date_reserve || !heur_reserve) {
             return res.status(400).json({
                 success: false,
-                message: 'carId, stationId, date_reserve, and heur_reserve are required'
+                message: 'carId, stationId, borneId, date_reserve, and heur_reserve are required'
             });
         }
 
@@ -174,13 +255,21 @@ const createReservation = async (req, res) => {
             });
         }
 
+        const selectedBorne = station.bornes?.find((borne) => String(borne.id_b) === String(borneId));
+        if (!selectedBorne) {
+            return res.status(404).json({
+                success: false,
+                message: 'Selected borne not found for this station'
+            });
+        }
+
         // CrÃ©er la rÃ©servation
         const reservation = await reservationService.createReservation(
             carId,
             stationId,
+            borneId,
             date_reserve,
-            heur_reserve,
-            station.tariff
+            heur_reserve
         );
 
         // RÃ©cupÃ©rer les infos de la voiture
@@ -205,11 +294,13 @@ const createReservation = async (req, res) => {
                 id: reservation.id,
                 carId: reservation.car_id,
                 stationId: reservation.station_id,
+                borneId: reservation.borne_id,
                 createdAt: reservation.created_at,
                 status: reservation.status,
                 tariff: reservation.tariff,
                 qrCode: qrCode,
                 stationName: station.name,
+                borne: selectedBorne,
                 vehicleMatricule: vehicleMatricule,
                 dateTime: startDateTime
             }
@@ -228,7 +319,23 @@ const createReservation = async (req, res) => {
         if (error.message.includes('SLOT_FULL')) {
             return res.status(409).json({
                 success: false,
-                message: 'Conflict: No available slots',
+                message: 'Conflict: No available borne',
+                error: error.message
+            });
+        }
+
+        if (error.message.includes('BORNE')) {
+            return res.status(409).json({
+                success: false,
+                message: 'Selected borne is not available at this time',
+                error: error.message
+            });
+        }
+
+        if (error.message.includes('OUT_OF_OPENING_HOURS')) {
+            return res.status(409).json({
+                success: false,
+                message: 'Selected time is outside the station opening hours',
                 error: error.message
             });
         }
@@ -236,7 +343,7 @@ const createReservation = async (req, res) => {
         if (error.message.includes('PAST_SLOT')) {
             return res.status(409).json({
                 success: false,
-                message: 'Conflict: Cannot create a reservation in the past',
+                message: 'Selected time is in the past',
                 error: error.message
             });
         }
@@ -532,6 +639,7 @@ module.exports = {
     getAllStations,
     getStationById,
     getSlotsByStation,
+    getAvailableBornes,
     checkConflict,
     createReservation,
     getMyReservations,

@@ -3,6 +3,7 @@ const QRCode = require('qrcode');
 
 const ACTIVE_STATUSES = ['pending', 'charging_25', 'charging_50', 'charging_75', 'completed'];
 const CHARGING_OVERVIEW_STATUSES = ['pending', 'charging_25', 'charging_50', 'charging_75', 'completed'];
+const ACTIVE_BORNE_OCCUPANCY_STATUSES = ACTIVE_STATUSES;
 const STATUS_TRANSITIONS = {
     pending: ['charging_25'],
     charging_25: ['charging_50'],
@@ -22,6 +23,8 @@ const STATUS_TO_PROGRESS = {
 
 const ACTIVE_RESERVATION_STATUSES = ['pending', 'charging_25', 'charging_50', 'charging_75', 'completed'];
 const EXPIRED_PENDING_STATUS = 'missed';
+let reservationsBorneIdColumnPromise = null;
+let stationHoursColumnsPromise = null;
 const KNOWN_STATION_COORDINATE_FIXES = {
     marsa: {
         latitude: 36.87818,
@@ -49,6 +52,269 @@ const normalizeStationCoordinates = (station) => {
         latitude: fixedCoordinates.latitude,
         longitude: fixedCoordinates.longitude,
     };
+};
+
+const mapBorneRow = (row) => ({
+    id_b: row.id_b,
+    station_id: row.station_id,
+    charging_speed_kw: row.charging_speed_kw,
+    average_duration_hours: row.average_duration_hours,
+    tariff: row.tarif
+});
+
+const enrichStationWithBornes = (station, bornes) => {
+    const sortedBornes = [...bornes].sort((a, b) => {
+        if (a.tariff !== b.tariff) {
+            return (a.tariff ?? 0) - (b.tariff ?? 0);
+        }
+        return (b.charging_speed_kw ?? 0) - (a.charging_speed_kw ?? 0);
+    });
+
+    const primaryBorne = sortedBornes[0] || {};
+
+    return {
+        ...station,
+        bornes: sortedBornes,
+        capacity: sortedBornes.length,
+        totalSlots: sortedBornes.length,
+        charging_speed_kw: primaryBorne.charging_speed_kw ?? null,
+        average_duration_hours: primaryBorne.average_duration_hours ?? null,
+        tariff: primaryBorne.tariff ?? null
+    };
+};
+
+const getStationBornes = async (stationId) => {
+    if (!stationId) {
+        return [];
+    }
+
+    const result = await pool.query(
+        `SELECT id_b, station_id, charging_speed_kw, average_duration_hours, tarif
+         FROM borne
+         WHERE station_id = $1::uuid
+         ORDER BY tarif ASC, charging_speed_kw DESC`,
+        [stationId]
+    );
+
+    return result.rows.map(mapBorneRow);
+};
+
+const getStationCapacity = async (stationId) => {
+    const result = await pool.query(
+        'SELECT COUNT(*)::int AS capacity FROM borne WHERE station_id = $1::uuid',
+        [stationId]
+    );
+
+    return result.rows[0]?.capacity || 0;
+};
+
+const hasReservationsBorneIdColumn = async () => {
+    if (!reservationsBorneIdColumnPromise) {
+        reservationsBorneIdColumnPromise = pool
+            .query(
+                `SELECT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = 'reservations'
+                      AND column_name = 'borne_id'
+                ) AS has_column`
+            )
+            .then((result) => Boolean(result.rows[0]?.has_column))
+            .catch((error) => {
+                reservationsBorneIdColumnPromise = null;
+                throw error;
+            });
+    }
+
+    return reservationsBorneIdColumnPromise;
+};
+
+const hasStationHoursColumns = async () => {
+    if (!stationHoursColumnsPromise) {
+        stationHoursColumnsPromise = pool
+            .query(
+                `SELECT
+                    EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = 'stations'
+                          AND column_name = 'heur_ouverture'
+                    ) AS has_opening,
+                    EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = 'stations'
+                          AND column_name = 'heur_fermeture'
+                    ) AS has_closing`
+            )
+            .then((result) => Boolean(result.rows[0]?.has_opening && result.rows[0]?.has_closing))
+            .catch((error) => {
+                stationHoursColumnsPromise = null;
+                throw error;
+            });
+    }
+
+    return stationHoursColumnsPromise;
+};
+
+const parseTimeToMinutes = (time) => {
+    if (!time) {
+        return null;
+    }
+
+    const normalized = String(time).substring(0, 5);
+    const [hours, minutes] = normalized.split(':').map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+        return null;
+    }
+
+    return hours * 60 + minutes;
+};
+
+const getStationTimeWindow = async (stationId) => {
+    const hasHours = await hasStationHoursColumns();
+    if (!hasHours) {
+        return {
+            heur_ouverture: null,
+            heur_fermeture: null,
+        };
+    }
+
+    const result = await pool.query(
+        `SELECT heur_ouverture, heur_fermeture
+         FROM stations
+         WHERE id = $1::uuid`,
+        [stationId]
+    );
+
+    return result.rows[0] || {
+        heur_ouverture: null,
+        heur_fermeture: null,
+    };
+};
+
+const toNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const getDateTimeFromParts = (date, time) => {
+    const timeValue = typeof time === 'string' ? time.substring(0, 8) : `${time}`.substring(0, 8);
+    return new Date(`${date}T${timeValue}`);
+};
+
+const addHours = (date, hours) => new Date(date.getTime() + toNumber(hours, 2) * 60 * 60 * 1000);
+
+const isReservationWindowActiveAt = (reservation, slotDateTime) => {
+    const reservationStart = getDateTimeFromParts(reservation.date_reserve, reservation.heur_reserve);
+    const reservationEnd = addHours(reservationStart, reservation.duration_hours ?? 2);
+
+    return slotDateTime >= reservationStart && slotDateTime < reservationEnd;
+};
+
+const getStationAvailabilityContext = async (stationId, date) => {
+    const reservationsHaveBorneId = await hasReservationsBorneIdColumn();
+
+    const [bornesResult, reservationsResult] = await Promise.all([
+        pool.query(
+            `SELECT id_b, station_id, charging_speed_kw, average_duration_hours, tarif
+             FROM borne
+             WHERE station_id = $1::uuid
+             ORDER BY tarif ASC, charging_speed_kw DESC`,
+            [stationId]
+        ),
+        reservationsHaveBorneId
+            ? pool.query(
+                `SELECT r.id, r.borne_id, r.date_reserve, r.heur_reserve,
+                        COALESCE(b.average_duration_hours, 2) AS duration_hours
+                 FROM reservations r
+                 LEFT JOIN borne b ON r.borne_id = b.id_b
+                 WHERE r.station_id = $1::uuid
+                   AND r.date_reserve = $2::date
+                   AND r.charging_status = ANY($3::text[])`,
+                [stationId, date, ACTIVE_BORNE_OCCUPANCY_STATUSES]
+            )
+            : pool.query(
+                `SELECT r.id, NULL::int AS borne_id, r.date_reserve, r.heur_reserve,
+                        2 AS duration_hours
+                 FROM reservations r
+                 WHERE r.station_id = $1::uuid
+                   AND r.date_reserve = $2::date
+                   AND r.charging_status = ANY($3::text[])`,
+                [stationId, date, ACTIVE_BORNE_OCCUPANCY_STATUSES]
+            ),
+    ]);
+
+    return {
+        bornes: bornesResult.rows.map(mapBorneRow),
+        reservations: reservationsResult.rows.map((row) => ({
+            ...row,
+            duration_hours: toNumber(row.duration_hours, 2),
+        })),
+    };
+};
+
+const isTimeWithinStationHours = async (stationId, date, time) => {
+    const stationWindow = await getStationTimeWindow(stationId);
+    const openingMinutes = parseTimeToMinutes(stationWindow.heur_ouverture);
+    const closingMinutes = parseTimeToMinutes(stationWindow.heur_fermeture);
+
+    if (openingMinutes === null || closingMinutes === null) {
+        return true;
+    }
+
+    const slotMinutes = parseTimeToMinutes(time);
+    if (slotMinutes === null) {
+        return false;
+    }
+
+    if (openingMinutes <= closingMinutes) {
+        return slotMinutes >= openingMinutes && slotMinutes <= closingMinutes;
+    }
+
+    return slotMinutes >= openingMinutes || slotMinutes <= closingMinutes;
+};
+
+const getAvailableBornesFromContext = (bornes, reservations, slotDateTime) => {
+    return bornes.filter((borne) => {
+        return !reservations.some((reservation) => {
+            const matchesBorne =
+                reservation.borne_id === null ||
+                reservation.borne_id === undefined ||
+                String(reservation.borne_id) === String(borne.id_b);
+
+            return matchesBorne && isReservationWindowActiveAt(reservation, slotDateTime);
+        });
+    });
+};
+
+const getAvailableBornesByStationAndDateTime = async (stationId, date, time) => {
+    if (!stationId || !date || !time) {
+        return [];
+    }
+
+    if (isReservationInPast(date, time)) {
+        const error = new Error('PAST_SLOT: Selected time is in the past');
+        error.code = 'PAST_SLOT';
+        throw error;
+    }
+
+    const withinHours = await isTimeWithinStationHours(stationId, date, time);
+    if (!withinHours) {
+        const stationWindow = await getStationTimeWindow(stationId);
+        const error = new Error('OUT_OF_OPENING_HOURS: Selected time is outside station opening hours');
+        error.code = 'OUT_OF_OPENING_HOURS';
+        error.stationWindow = stationWindow;
+        throw error;
+    }
+
+    const context = await getStationAvailabilityContext(stationId, date);
+    const slotDateTime = getDateTimeFromParts(date, time);
+
+    return getAvailableBornesFromContext(context.bornes, context.reservations, slotDateTime);
 };
 
 const parseReservationDateTime = (date_reserve, heur_reserve) => {
@@ -124,7 +390,7 @@ const fetchReservationsByCarIdentifier = async (carIdentifier) => {
          LEFT JOIN vehicles v ON r.car_id = v.id
          WHERE (r.car_id::text = $1
             OR v.immatricul = $1)
-         AND r.charging_status = ANY($2)
+         AND r.charging_status = ANY($2::text[])
          ORDER BY r.date_reserve DESC, r.heur_reserve DESC`,
         [carIdentifier, ACTIVE_STATUSES]
     );
@@ -160,10 +426,38 @@ const fetchInvoicesByCarIdentifier = async (carIdentifier) => {
  */
 const getAllStations = async () => {
     try {
-        const result = await pool.query(
-            'SELECT id, name, latitude, longitude, charging_speed_kw, average_duration_hours, tariff, capacity FROM stations ORDER BY name'
+        const hasHours = await hasStationHoursColumns();
+        const stationResult = await pool.query(
+            hasHours
+                ? 'SELECT id, name, latitude, longitude, heur_ouverture, heur_fermeture FROM stations ORDER BY name'
+                : `SELECT id, name, latitude, longitude,
+                        NULL::time AS heur_ouverture,
+                        NULL::time AS heur_fermeture
+                   FROM stations ORDER BY name`
         );
-        return result.rows.map(normalizeStationCoordinates);
+
+        const stationIds = stationResult.rows.map((station) => station.id);
+        const bornesByStation = {};
+
+        if (stationIds.length > 0) {
+            const bornesResult = await pool.query(
+                `SELECT id_b, station_id, charging_speed_kw, average_duration_hours, tarif
+                 FROM borne
+                 WHERE station_id = ANY($1::uuid[])
+                 ORDER BY tarif ASC, charging_speed_kw DESC`,
+                [stationIds]
+            );
+
+            bornesResult.rows.forEach((row) => {
+                const stationId = row.station_id;
+                bornesByStation[stationId] = bornesByStation[stationId] || [];
+                bornesByStation[stationId].push(mapBorneRow(row));
+            });
+        }
+
+        return stationResult.rows
+            .map((station) => enrichStationWithBornes(station, bornesByStation[station.id] || []))
+            .map(normalizeStationCoordinates);
     } catch (error) {
         console.error('Error fetching stations:', error);
         throw error;
@@ -175,11 +469,24 @@ const getAllStations = async () => {
  */
 const getStationById = async (stationId) => {
     try {
+        const hasHours = await hasStationHoursColumns();
         const result = await pool.query(
-            'SELECT * FROM stations WHERE id = $1::uuid',
+            hasHours
+                ? 'SELECT id, name, latitude, longitude, heur_ouverture, heur_fermeture FROM stations WHERE id = $1::uuid'
+                : `SELECT id, name, latitude, longitude,
+                        NULL::time AS heur_ouverture,
+                        NULL::time AS heur_fermeture
+                   FROM stations WHERE id = $1::uuid`,
             [stationId]
         );
-        return normalizeStationCoordinates(result.rows[0]);
+
+        const station = result.rows[0];
+        if (!station) {
+            return null;
+        }
+
+        const bornes = await getStationBornes(stationId);
+        return normalizeStationCoordinates(enrichStationWithBornes(station, bornes));
     } catch (error) {
         console.error('Error fetching station:', error);
         throw error;
@@ -199,28 +506,8 @@ const getSlotsByStationAndDate = async (stationId, date) => {
         // date format: YYYY-MM-DD
         console.log(`[SLOTS] Fetching dynamic slots for station=${stationId}, date=${date}`);
 
-        // Get station capacity
-        const stationRes = await pool.query('SELECT capacity FROM stations WHERE id=$1::uuid', [stationId]);
-        if (!stationRes.rows[0]) return [];
-        const capacity = stationRes.rows[0].capacity;
-
-        // Get reservations count group by heur_reserve
-        const resCount = await pool.query(
-            `SELECT heur_reserve, COUNT(*) as count 
-             FROM reservations 
-             WHERE station_id=$1::uuid
-               AND date_reserve=$2::date
-               AND charging_status = ANY($3)
-             GROUP BY heur_reserve`,
-            [stationId, date, ACTIVE_RESERVATION_STATUSES]
-        );
-
-        const countsMap = {};
-        resCount.rows.forEach(r => {
-            const timeStr = typeof r.heur_reserve === 'string' ? r.heur_reserve : r.heur_reserve.toString();
-            const hm = timeStr.substring(0, 5);
-            countsMap[hm] = parseInt(r.count);
-        });
+        const context = await getStationAvailabilityContext(stationId, date);
+        if (context.bornes.length === 0) return [];
 
         const dynamicSlots = [];
         const baseDate = new Date(`${date}T08:00:00`);
@@ -232,9 +519,11 @@ const getSlotsByStationAndDate = async (stationId, date) => {
             const minutes = String(slotTime.getMinutes()).padStart(2, '0');
             const timeStr = `${hours}:${minutes}`;
 
-            const occupied = countsMap[timeStr] || 0;
             const isPastSlot = isReservationInPast(date, `${timeStr}:00`);
-            const available_places = isPastSlot ? 0 : Math.max(0, capacity - occupied);
+            const availableBornes = isPastSlot
+                ? []
+                : getAvailableBornesFromContext(context.bornes, context.reservations, slotTime);
+            const available_places = availableBornes.length;
 
             dynamicSlots.push({
                 id: `virt-${timeStr}`,
@@ -243,10 +532,11 @@ const getSlotsByStationAndDate = async (stationId, date) => {
                 heur_reserve: `${timeStr}:00`,
                 start_datetime: slotTime.toISOString(),
                 duration_minutes: 30,
-                capacity: capacity,
+                capacity: context.bornes.length,
                 available_places: available_places,
                 available: !isPastSlot && available_places > 0,
-                is_past: isPastSlot
+                is_past: isPastSlot,
+                available_borne_ids: availableBornes.map((borne) => borne.id_b)
             });
         }
 
@@ -268,16 +558,15 @@ const isTimeAvailable = async (stationId, date_reserve, heur_reserve) => {
             return false;
         }
 
-        const stationRes = await pool.query('SELECT capacity FROM stations WHERE id = $1::uuid', [stationId]);
-        if (!stationRes.rows[0]) return false;
-        const capacity = stationRes.rows[0].capacity;
+        const capacity = await getStationCapacity(stationId);
+        if (capacity === 0) return false;
 
         const resCount = await pool.query(
             `SELECT COUNT(*) as count FROM reservations 
              WHERE station_id = $1::uuid
                AND date_reserve = $2::date
                AND heur_reserve = $3::time
-               AND charging_status = ANY($4)`,
+               AND charging_status = ANY($4::text[])`,
             [stationId, date_reserve, heur_reserve, ACTIVE_RESERVATION_STATUSES]
         );
 
@@ -323,35 +612,61 @@ const hasConflict = async (carId, date_reserve, heur_reserve) => {
 /**
  * Crée une nouvelle réservation
  */
-const createReservation = async (carId, stationId, date_reserve, heur_reserve, tariff) => {
+const createReservation = async (carId, stationId, borneId, date_reserve, heur_reserve) => {
     try {
         await cleanupExpiredPendingReservations();
-        console.log(`[RESERVATION] Creating reservation for car=${carId}, station=${stationId}, date=${date_reserve}, time=${heur_reserve}`);
+        console.log(`[RESERVATION] Creating reservation for car=${carId}, station=${stationId}, borne=${borneId}, date=${date_reserve}, time=${heur_reserve}`);
 
         if (isReservationInPast(date_reserve, heur_reserve)) {
             throw new Error('PAST_SLOT: Cannot create a reservation in the past');
         }
 
-        // Vérifier le conflit
+        if (!borneId) {
+            throw new Error('BORNE_REQUIRED: A borne must be selected');
+        }
+
+        const selectedBorneResult = await pool.query(
+            `SELECT id_b, station_id, charging_speed_kw, average_duration_hours, tarif
+             FROM borne
+             WHERE id_b = $1::int AND station_id = $2::uuid
+             LIMIT 1`,
+            [borneId, stationId]
+        );
+
+        const selectedBorne = selectedBorneResult.rows[0];
+        if (!selectedBorne) {
+            throw new Error('BORNE_NOT_FOUND: Selected borne does not belong to this station');
+        }
+
+        const availableBornes = await getAvailableBornesByStationAndDateTime(stationId, date_reserve, heur_reserve);
+        const chosenBorne = availableBornes.find((borne) => String(borne.id_b) === String(borneId));
+        if (!chosenBorne) {
+            throw new Error('BORNE_UNAVAILABLE: Selected borne is not available at this time');
+        }
+
+        // Vérifier le conflit pour la voiture
         const conflict = await hasConflict(carId, date_reserve, heur_reserve);
         if (conflict) {
             throw new Error('CONFLICT: Voiture a déjà une réservation active');
         }
 
-        // Vérifier la disponibilité
-        const available = await isTimeAvailable(stationId, date_reserve, heur_reserve);
-        if (!available) {
-            throw new Error('SLOT_FULL: Aucune place disponible dans ce créneau');
-        }
+        const reservationsHaveBorneId = await hasReservationsBorneIdColumn();
+        const insertSql = reservationsHaveBorneId
+            ? `INSERT INTO reservations (car_id, station_id, borne_id, date_reserve, heur_reserve, tariff, charging_status, qr_code)
+               VALUES ($1, $2::uuid, $3::int, $4::date, $5::time, $6, 'pending', '')
+               RETURNING id, car_id, station_id, borne_id, date_reserve, heur_reserve, created_at, charging_status AS status,
+                  0 AS charging_progress, tariff`
+            : `INSERT INTO reservations (car_id, station_id, date_reserve, heur_reserve, tariff, charging_status, qr_code)
+               VALUES ($1, $2::uuid, $3::date, $4::time, $5, 'pending', '')
+               RETURNING id, car_id, station_id, NULL::int AS borne_id, date_reserve, heur_reserve, created_at, charging_status AS status,
+                  0 AS charging_progress, tariff`;
+
+        const insertParams = reservationsHaveBorneId
+            ? [carId, stationId, borneId, date_reserve, heur_reserve, selectedBorne.tarif]
+            : [carId, stationId, date_reserve, heur_reserve, selectedBorne.tarif];
 
         // Créer la réservation
-        const result = await pool.query(
-            `INSERT INTO reservations (car_id, station_id, date_reserve, heur_reserve, tariff, charging_status, qr_code)
-             VALUES ($1, $2::uuid, $3::date, $4::time, $5, 'pending', '')
-             RETURNING id, car_id, station_id, date_reserve, heur_reserve, created_at, charging_status AS status,
-                0 AS charging_progress, tariff`,
-            [carId, stationId, date_reserve, heur_reserve, tariff]
-        );
+        const result = await pool.query(insertSql, insertParams);
 
         console.log(`[RESERVATION] Created: ${result.rows[0].id}`);
         return result.rows[0];
@@ -446,13 +761,22 @@ const getReservationById = async (reservationId) => {
 const getAllChargingSessions = async () => {
     try {
         await cleanupExpiredPendingReservations();
+        const reservationsHaveBorneId = await hasReservationsBorneIdColumn();
+        const selectBorneColumns = reservationsHaveBorneId
+            ? `r.borne_id,
+                COALESCE(b.average_duration_hours, 2) AS average_duration_hours,`
+            : `NULL::int AS borne_id,
+                NULL::numeric AS average_duration_hours,`;
+        const joinBorneClause = reservationsHaveBorneId
+            ? 'LEFT JOIN borne b ON r.borne_id = b.id_b'
+            : '';
         const result = await pool.query(
             `SELECT
                 r.id,
                 r.car_id,
                 r.station_id,
                 st.name AS station_name,
-                st.average_duration_hours,
+                ${selectBorneColumns}
                 v.immatricul,
                 r.charging_status AS status,
                 CASE r.charging_status
@@ -469,6 +793,7 @@ const getAllChargingSessions = async () => {
             FROM reservations r
             INNER JOIN stations st ON r.station_id = st.id
             INNER JOIN vehicles v ON r.car_id = v.id
+            ${joinBorneClause}
             WHERE r.charging_status = ANY($1)
             ORDER BY st.name ASC, r.date_reserve DESC, r.heur_reserve DESC`,
             [CHARGING_OVERVIEW_STATUSES]
@@ -636,6 +961,7 @@ module.exports = {
     getAllStations,
     getStationById,
     getSlotsByStationAndDate,
+    getAvailableBornesByStationAndDateTime,
     isTimeAvailable,
     hasConflict,
     createReservation,
