@@ -4,6 +4,7 @@ import './Invoices.css';
 import AppSidebar from '../components/AppSidebar';
 import { getVehicleFromToken } from '../utils/authVehicle';
 import * as reservationService from '../services/reservationService_frontend';
+import { Printer, Sparkles, CalendarDays } from 'lucide-react';
 
 const formatDateTime = (date, time, paidAt) => {
     if (paidAt) {
@@ -211,17 +212,6 @@ const Invoices = () => {
                 <AppSidebar />
 
                 <div className="invoices-content">
-                    <header className="invoices-hero">
-                        <div>
-                            <div className="invoices-kicker">Billing archive</div>
-                            <h1>Invoices</h1>
-                            <p>
-                                Every paid reservation stays here as an invoice record. This gives the driver
-                                a clean history without cluttering the active reservations page.
-                            </p>
-                        </div>
-                    </header>
-
                     {error && (
                         <div className="invoices-error">
                             <span>{error}</span>
@@ -247,7 +237,10 @@ const Invoices = () => {
                                 <article key={invoice.id} className="invoice-card">
                                     <div className="invoice-card-header">
                                         <div>
-                                            <span className="invoice-badge">Paid</span>
+                                            <span className="invoice-badge">
+                                                <Sparkles size={12} />
+                                                Paid
+                                            </span>
                                             <h2>{invoice.station_name}</h2>
                                         </div>
                                         <div className="invoice-card-actions">
@@ -256,6 +249,7 @@ const Invoices = () => {
                                                 className="invoice-print-button"
                                                 onClick={() => handlePrintInvoice(invoice)}
                                             >
+                                                <Printer size={15} />
                                                 Print invoice
                                             </button>
                                         </div>
@@ -271,7 +265,10 @@ const Invoices = () => {
                                             <strong>{formatDateTime(invoice.date_reserve, invoice.heur_reserve)}</strong>
                                         </div>
                                         <div>
-                                            <span className="invoice-label">Invoice ID</span>
+                                            <span className="invoice-label">
+                                                <CalendarDays size={12} />
+                                                Invoice ID
+                                            </span>
                                             <strong>{invoice.id.slice(0, 8).toUpperCase()}</strong>
                                         </div>
                                     </div>

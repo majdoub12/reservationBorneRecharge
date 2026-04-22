@@ -4,6 +4,7 @@ import './ActiveReservations.css';
 import * as reservationService from '../services/reservationService_frontend';
 import AppSidebar from '../components/AppSidebar';
 import { getVehicleFromToken } from '../utils/authVehicle';
+import { Sparkles, PlayCircle, QrCode } from 'lucide-react';
 
 const STATUS_LABELS = {
     pending: 'Pending',
@@ -16,17 +17,6 @@ const STATUS_LABELS = {
 };
 
 const getReservationStatus = (reservation) => reservation?.status || reservation?.charging_status || '';
-
-const parseReservationDateTime = (date, time) => {
-    if (!date || !time) {
-        return null;
-    }
-
-    const datePart = String(date).includes('T') ? String(date).split('T')[0] : String(date);
-    const parsed = new Date(`${datePart}T${String(time).slice(0, 8)}`);
-
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
 
 const formatReservationDateTime = (date, time) => {
     if (!date || !time) {
@@ -157,23 +147,6 @@ const ActiveReservations = () => {
                 <AppSidebar />
 
                 <div className="active-reservations-shell">
-                    <header className="active-hero">
-                        <div>
-                            <div className="active-kicker">Charging command center</div>
-                            <h1>Active reservations</h1>
-                            <p>
-                                Track reservations that still need attention. Completed sessions stay here until
-                                payment is done, then they disappear from this page automatically.
-                            </p>
-                        </div>
-
-                        <div className="active-hero-actions">
-                            <button className="ghost-action" onClick={() => navigate('/reservation')}>
-                                New reservation
-                            </button>
-                        </div>
-                    </header>
-
                     <section className="active-summary-grid">
                         <article className="summary-card">
                             <span className="summary-label">Open reservations</span>
@@ -233,6 +206,10 @@ const ActiveReservations = () => {
                                                     {STATUS_LABELS[reservationStatus] || reservationStatus}
                                                 </span>
                                                 <h2>{reservation.station_name}</h2>
+                                                <p className="reservation-card-subcopy">
+                                                    <Sparkles size={14} />
+                                                    Keep the active queue elegant, fast, and easy to scan.
+                                                </p>
                                             </div>
                                             <div className="reservation-price">{reservation.tariff} TND</div>
                                         </div>
@@ -287,6 +264,7 @@ const ActiveReservations = () => {
 
                                         <div className="reservation-actions">
                                             <button className="primary-action" onClick={() => handleOpenCharging(reservation)}>
+                                                <PlayCircle size={16} />
                                                 {startLabel}
                                             </button>
 
@@ -310,6 +288,7 @@ const ActiveReservations = () => {
                                                     onClick={() => openQrPopup(reservation)}
                                                     type="button"
                                                 >
+                                                    <QrCode size={16} />
                                                     Show QR code
                                                 </button>
                                             )}

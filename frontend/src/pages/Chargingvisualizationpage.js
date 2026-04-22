@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import './Chargingvisualizationpage.css';
 import AppSidebar from '../components/AppSidebar';
@@ -7,6 +7,7 @@ import StationChargingTable from '../components/ChargingTable';
 import * as chargingService from '../services/Chargingservice';
 import * as reservationService from '../services/reservationService_frontend';
 import { getVehicleFromToken } from '../utils/authVehicle';
+import { Gauge, BatteryCharging, PlayCircle, CircleDollarSign } from 'lucide-react';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const CHARGING_GRACE_MINUTES = 15;
@@ -104,10 +105,9 @@ const ChargingVisualizationPage = () => {
     const [vehicle, setVehicle] = useState(() => getVehicleFromToken());
     const location = useLocation();
     const selectedReservationId = location.state?.reservationId || null;
-    const [autoRefresh, setAutoRefresh] = useState(true);
+    const autoRefresh = true;
     const [reservations, setReservations] = useState([]);
     const [chargingSessions, setChargingSessions] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [actionMessage, setActionMessage] = useState(null);
     const [simulationReservationId, setSimulationReservationId] = useState(null);
@@ -148,9 +148,8 @@ const ChargingVisualizationPage = () => {
         hydrateVehicle();
     }, [vehicle?.id]);
 
-    const loadDashboard = async () => {
+    const loadDashboard = useCallback(async () => {
         try {
-            setLoading(true);
             setError(null);
 
             const [reservationData, chargingData] = await Promise.all([
@@ -168,10 +167,8 @@ const ChargingVisualizationPage = () => {
         } catch (loadError) {
             setError('Unable to load the charging dashboard right now.');
             console.error(loadError);
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [vehicle?.id, vehicle?.matricule]);
 
     useEffect(() => {
         loadDashboard();
@@ -185,7 +182,7 @@ const ChargingVisualizationPage = () => {
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [autoRefresh, vehicle?.id]);
+    }, [autoRefresh, loadDashboard]);
 
     const activeOrPendingReservation = useMemo(() => {
         const sorted = [...reservations]
@@ -361,73 +358,21 @@ const ChargingVisualizationPage = () => {
                         ? 'Waiting to start'
                         : getReservationStatus(currentReservation) || 'Idle';
 
-    const dashboardReservation = simulationReservationId
-        ? reservations.find((reservation) => reservation.id === simulationReservationId) || upcomingReservation
-        : currentReservation || upcomingReservation;
-
-    const dashboardMetrics = [
-        {
-            label: 'Reservation',
-            value: dashboardReservation ? dashboardReservation.station_name : 'None',
-            hint: dashboardReservation
-                ? formatReservationDateTime(dashboardReservation.date_reserve, dashboardReservation.heur_reserve)
-                : 'No reservation assigned'
-        },
-        {
-            label: 'Progress',
-            value: `${Math.round(displayProgress)}%`,
-            hint: simulationReservationId
-                ? 'Live simulation'
-                : getReservationStatus(currentReservation) === 'completed'
-                    ? 'Payment pending'
-                    : 'Station progress'
-        },
-        {
-            label: 'Status',
-            value: displayStatusLabel,
-            hint: simulationReservationId ? 'Battery simulation in progress' : 'Reservation state'
-        },
-        {
-            label: 'Station',
-            value: displayStationName,
-            hint: stationSessions.length > 0 ? `${stationSessions.length} active vehicle(s)` : 'No active sessions yet'
-        }
-    ];
-
     return (
         <div className="charging-visualization-page">
             <div className="charging-layout">
                 <AppSidebar />
 
                 <section className="dashboard-shell">
-                    <header className="page-header">
-                        <div className="page-kicker">Driver dashboard</div>
-                        <div className="header-copy">
-                            <h1>Charging simulation</h1>
-                            <p className="subtitle">
-                                Start the recharge only when a reservation is due. The battery simulation, station
-                                summary, and payment step all follow the same reservation state.
-                            </p>
-                        </div>
-
-                        <div className="header-actions">
-                            <label className="toggle-label">
-                                <input
-                                    type="checkbox"
-                                    checked={autoRefresh}
-                                    onChange={(event) => setAutoRefresh(event.target.checked)}
-                                />
-                                Auto refresh every 5 seconds
-                            </label>
-                        </div>
-                    </header>
-
                     {error && <div className="dashboard-alert error">{error}</div>}
                     {actionMessage && <div className="dashboard-alert success">{actionMessage}</div>}
 
                     <section className="charging-top-grid">
                         <article className="car-model-panel">
-                            <div className="panel-kicker">Vehicle model</div>
+                            <div className="panel-kicker">
+                                <BatteryCharging size={14} />
+                                Vehicle model
+                            </div>
                             <div className="car-model-header">
                                 <div>
                                     <h2>{vehicleModelLabel}</h2>
@@ -473,7 +418,10 @@ const ChargingVisualizationPage = () => {
                         <article className="battery-stage-panel battery-stage-panel-prominent">
                             <div className="section-heading section-heading-tight">
                                 <div>
-                                    <span className="section-kicker">Battery simulation</span>
+                                    <span className="section-kicker">
+                                        <Gauge size={14} />
+                                        Battery simulation
+                                    </span>
                                     <h3>Charging progress</h3>
                                 </div>
                                 <div className="section-note">
@@ -503,6 +451,7 @@ const ChargingVisualizationPage = () => {
                                 </div>
 
                                 <button className="start-button" onClick={handleStartCharging} disabled={actionLoading}>
+                                    <PlayCircle size={16} />
                                     {actionLoading ? 'Starting...' : 'Start recharging'}
                                 </button>
                             </div>
@@ -568,6 +517,7 @@ const ChargingVisualizationPage = () => {
                         </div>
 
                         <button className="payment-button" onClick={handlePayNow} disabled={actionLoading}>
+                            <CircleDollarSign size={16} />
                             {actionLoading ? 'Processing...' : 'Pay now'}
                         </button>
                     </div>

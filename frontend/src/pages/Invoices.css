@@ -1,6 +1,9 @@
 .invoices-page {
   min-height: 100vh;
-  padding: 32px 20px 48px;
+  padding: 0 0 48px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   
   --bg-primary: hsl(var(--background));
   --bg-secondary: hsl(var(--card));
@@ -21,6 +24,32 @@
   color: var(--text-primary);
 }
 
+.invoices-page::before,
+.invoices-page::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 999px;
+  filter: blur(28px);
+}
+
+.invoices-page::before {
+  top: 120px;
+  right: -150px;
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle, hsla(var(--primary) / 0.1), transparent 68%);
+}
+
+.invoices-page::after {
+  bottom: -120px;
+  left: -120px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, hsla(var(--primary) / 0.07), transparent 72%);
+}
+
 :root[data-theme="light"] .invoices-page {
   --surface-elevated: rgba(255, 255, 255, 0.7);
   --surface-muted: rgba(0, 0, 0, 0.03);
@@ -28,12 +57,14 @@
 }
 
 .invoices-layout {
-  max-width: 1440px;
+  position: relative;
+  z-index: 1;
+  width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
-  gap: 32px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: stretch;
 }
 
 .invoices-content {
@@ -48,10 +79,10 @@
 .invoices-error {
   background: var(--surface-elevated);
   border: 1px solid var(--surface-border);
-  border-radius: 32px;
+  border-radius: 24px;
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(24px);
-  padding: 40px;
+  padding: 28px;
   transition: all 0.4s ease;
 }
 
@@ -60,11 +91,14 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 28px 32px;
 }
 
 .invoices-kicker,
 .invoice-label {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--accent-strong);
   text-transform: uppercase;
   letter-spacing: 0.25em;
@@ -76,7 +110,7 @@
 .invoices-hero h1,
 .invoices-empty h2 {
   margin: 12px 0 0;
-  font-size: clamp(2.2rem, 4vw, 3.8rem);
+  font-size: clamp(1.8rem, 3vw, 2.75rem);
   line-height: 1.05;
   letter-spacing: -0.04em;
   font-family: "Space Grotesk", sans-serif;
@@ -88,14 +122,14 @@
   color: var(--text-secondary);
   line-height: 1.7;
   max-width: 720px;
-  font-size: 1.1rem;
+  font-size: 0.98rem;
   margin: 16px 0 0;
 }
 
 .invoices-panel,
 .invoices-empty {
   text-align: center;
-  padding: 64px 32px;
+  padding: 48px 28px;
 }
 
 .invoices-empty p {
@@ -131,11 +165,16 @@
 
 .invoice-list {
   display: grid;
-  gap: 24px;
+  gap: 18px;
+  max-width: 1040px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .invoice-card {
-  padding: 40px;
+  padding: 18px 20px;
+  width: min(100%, 1040px);
+  margin: 0 auto;
 }
 
 .invoice-card:hover {
@@ -160,15 +199,17 @@
 
 .invoice-card-header h2 {
   margin: 12px 0 0;
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   font-family: "Space Grotesk", sans-serif;
 }
 
 .invoice-badge {
   display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border-radius: 999px;
-  padding: 10px 16px;
-  font-size: 0.85rem;
+  padding: 8px 14px;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -178,15 +219,15 @@
 }
 
 .invoice-amount {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: var(--text-primary);
 }
 
 .invoice-print-button {
   border: none;
-  border-radius: 16px;
-  padding: 14px 24px;
+  border-radius: 999px;
+  padding: 12px 20px;
   font-weight: 700;
   font-size: 0.95rem;
   cursor: pointer;
@@ -194,6 +235,9 @@
   color: var(--text-primary);
   border: 1px solid var(--surface-border);
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .invoice-print-button:hover {
@@ -224,7 +268,7 @@
   margin-top: 8px;
   color: var(--text-primary);
   line-height: 1.6;
-  font-size: 1.1rem;
+  font-size: 0.98rem;
 }
 
 @media (max-width: 960px) {

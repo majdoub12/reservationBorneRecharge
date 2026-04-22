@@ -20,6 +20,35 @@
   background: var(--bg-primary);
   color: var(--text-primary);
   position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 0 0 48px;
+}
+
+.reservation-page::before,
+.reservation-page::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 999px;
+  filter: blur(28px);
+}
+
+.reservation-page::before {
+  top: 120px;
+  right: -160px;
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, hsla(var(--primary) / 0.12), transparent 68%);
+}
+
+.reservation-page::after {
+  bottom: -120px;
+  left: -140px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, hsla(var(--primary) / 0.08), transparent 72%);
 }
 
 :root[data-theme="light"] .reservation-page {
@@ -29,14 +58,15 @@
 }
 
 .reservation-layout {
-  display: flex;
-  gap: 32px;
-  align-items: flex-start;
-  width: min(1600px, calc(100% - 48px));
-  margin: 0 auto;
-  padding: 32px 0;
   position: relative;
-  z-index: 10;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: stretch;
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 8px 0 0;
 }
 
 .reservation-content {
@@ -54,10 +84,10 @@
   grid-template-columns: minmax(0, 1.4fr) auto;
   gap: 32px;
   align-items: center;
-  padding: 40px 48px;
+  padding: 28px 32px;
   background: linear-gradient(135deg, var(--surface) 0%, hsla(var(--background) / 0.8) 100%);
   border: 1px solid var(--surface-border);
-  border-radius: 32px;
+  border-radius: 24px;
   box-shadow: inset 0 1px 1px hsla(0,0%,100%,0.1), var(--shadow-soft);
   backdrop-filter: blur(24px);
 }
@@ -83,7 +113,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   color: var(--accent-strong);
   font-size: 0.8rem;
   font-weight: 800;
@@ -94,18 +124,19 @@
 
 .hero-copy h2 {
   margin: 0;
-  font-size: clamp(2.2rem, 4.5vw, 3.8rem);
+  max-width: 12ch;
+  font-size: clamp(1.8rem, 3vw, 2.75rem);
   line-height: 1.05;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
   color: var(--text-primary);
   font-family: "Space Grotesk", sans-serif;
   font-weight: 800;
 }
 
 .hero-copy p {
-  margin: 20px 0 0;
-  max-width: 65ch;
-  font-size: 1.1rem;
+  margin: 12px 0 0;
+  max-width: 58ch;
+  font-size: 0.98rem;
   line-height: 1.7;
   color: var(--text-secondary);
 }
@@ -121,12 +152,13 @@
 .hero-pill {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   padding: 14px 20px;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid var(--surface-border);
   background: var(--surface-muted);
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 700;
   transition: all 0.4s ease;
   backdrop-filter: blur(10px);
@@ -147,8 +179,8 @@
 
 .map-list-wrapper {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(340px, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.85fr);
+  gap: 18px;
   align-items: start;
 }
 
@@ -157,7 +189,7 @@
 .div-2 > * {
   background: var(--surface);
   border: 1px solid var(--surface-border);
-  border-radius: 32px;
+  border-radius: 20px;
   box-shadow: var(--shadow-soft);
   overflow: hidden;
   backdrop-filter: blur(20px);
@@ -173,11 +205,11 @@
 }
 
 .map-section, .list-section {
-  padding: 24px;
+  padding: 14px;
 }
 
 .div-2 > * {
-  padding: 24px;
+  padding: 14px;
 }
 
 .loading-message,
@@ -188,7 +220,7 @@
   min-height: 240px;
   background: var(--surface);
   border: 1px solid var(--surface-border);
-  border-radius: 32px;
+  border-radius: 24px;
   color: var(--text-secondary);
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(10px);
@@ -256,10 +288,22 @@
   }
 }
 
-@media (max-width: 960px) {
-  .reservation-layout {
-    flex-direction: column;
+@media (max-width: 640px) {
+  .reservation-hero {
+    padding: 20px;
   }
+
+  .hero-copy h2 {
+    max-width: none;
+    font-size: clamp(1.6rem, 7vw, 2.1rem);
+  }
+
+  .hero-pills {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 960px) {
   .map-list-wrapper {
     grid-template-columns: 1fr;
   }

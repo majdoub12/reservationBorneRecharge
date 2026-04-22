@@ -140,20 +140,6 @@ const Reservation = () => {
                 <AppSidebar />
 
                 <div className="reservation-content">
-                    <div className="reservation-hero">
-                        <div className="hero-copy">
-                            <span className="hero-eyebrow">Premium charging</span>
-                            <h2>Select a station, choose a time, and reserve a borne</h2>
-                        </div>
-
-                        <div className="hero-pills" aria-label="Reservation steps">
-                            <span className="hero-pill active">1. Choose station</span>
-                            <span className="hero-pill">2. Review map</span>
-                            <span className="hero-pill">3. Pick time</span>
-                            <span className="hero-pill">4. Confirm</span>
-                        </div>
-                    </div>
-
                     <div className="div-1">
                         <div className="map-list-wrapper">
                             <div className="map-section">

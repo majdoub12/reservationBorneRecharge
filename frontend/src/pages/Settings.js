@@ -5,12 +5,12 @@ import { COUNTRIES } from '../utils/constants';
 import AppSidebar from '../components/AppSidebar';
 import { getVehicleFromToken } from '../utils/authVehicle';
 import { applyTheme, getStoredTheme } from '../utils/theme';
+import { PlusCircle, Trash2 } from 'lucide-react';
 
 function Settings() {
   const navigate = useNavigate();
   const location = useLocation();
   const vehicleId = location.state?.vehicleId || getVehicleFromToken()?.id;
-  const [vehicleInfo, setVehicleInfo] = useState({ plate: '', vin: '' });
   const [theme, setTheme] = useState(getStoredTheme());
 
   const [contacts, setContacts] = useState([]);
@@ -31,7 +31,6 @@ function Settings() {
       const data = await res.json();
       if (res.ok) {
         setContacts(data.contacts);
-        setVehicleInfo({ plate: data.plate, vin: data.vin });
       } else {
         setError(data.message || 'Failed to load contacts');
       }
@@ -129,18 +128,11 @@ function Settings() {
         <AppSidebar />
 
         <div className="settings-content">
-          <header className="settings-header">
-            <span className="settings-kicker">Driver settings</span>
-            <h1>Settings</h1>
-            <p>Plate: <strong>{vehicleInfo.plate}</strong> | VIN: <strong>{vehicleInfo.vin}</strong></p>
-          </header>
-
           {error && <div className="settings-error">{error}</div>}
 
           <section className="settings-panel">
             <div className="settings-panel-header">
               <div>
-                <span className="panel-kicker">Appearance</span>
                 <h2>Theme</h2>
               </div>
               <div className="theme-toggle">
@@ -166,7 +158,6 @@ function Settings() {
           <section className="settings-panel">
             <div className="settings-panel-header">
               <div>
-                <span className="panel-kicker">Notifications</span>
                 <h2>Contacts</h2>
               </div>
             </div>
@@ -188,6 +179,7 @@ function Settings() {
                       onClick={() => handleDelete(c.type, c.value)}
                       disabled={actionLoading}
                     >
+                      <Trash2 size={15} />
                       Delete
                     </button>
                   </div>
@@ -197,6 +189,7 @@ function Settings() {
 
             {!isAdding ? (
               <button className="btn-show-add" onClick={() => setIsAdding(true)}>
+                <PlusCircle size={16} />
                 + Add New Contact
               </button>
             ) : (
