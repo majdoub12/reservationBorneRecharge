@@ -7,6 +7,9 @@ app = Flask(__name__)
 
 # Initialize EasyOCR reader
 reader = Reader(['en', 'ar'], gpu=False, verbose=False)
+reader_vin = Reader(['en'], gpu=False, verbose=False)
+
+
 
 MODE_CONFIG = {
     'generic': {},
@@ -17,9 +20,28 @@ MODE_CONFIG = {
         'allowlist': '0123456789',
     },
     'vin': {
-        'allowlist': 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+        'allowlist': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+        'contrast_ths': 0.1,
+        'adjust_contrast': 0.7,
     },
 }
+
+VIN_CHAR_CORRECTIONS = {
+    '|': 'I',  # pipe → I (but for VIN context we need to check position)
+    ',': 'V',  # comma → V (very common confusion)
+    '.': '',   # dots → remove
+    'O': '0',  # letter O → zero (VINs don't use letter O)
+    'o': '0',
+    'Q': '0',  # Q looks like O
+    'I': '1',  # letter I → 1 (VINs don't use I)
+    'l': '1',  # lowercase l → 1
+}
+
+def correct_vin_chars(text):
+    result = ''
+    for ch in text.upper():
+        result += VIN_CHAR_CORRECTIONS.get(ch, ch)
+    return result
 
 @app.route('/ocr', methods=['POST'])
 def perform_ocr():
@@ -38,7 +60,8 @@ def perform_ocr():
             return jsonify({'error': 'Invalid image payload'}), 400
 
         # EasyOCR recognition
-        results = reader.readtext(
+        active_reader = reader_vin if mode == 'vin' else reader
+        results = active_reader.readtext(
             decoded,
             detail=1,
             paragraph=False,
@@ -60,6 +83,11 @@ def perform_ocr():
                 'bbox': bbox
             })
         
+        if mode == 'vin':
+            for r in formatted_results:
+                r['text'] = correct_vin_chars(r['text'])
+
+
         print(f"✅ EasyOCR detected {len(formatted_results)} text regions")
         for r in formatted_results:
             print(f"   - '{r['text']}' (confidence: {r['confidence']:.2f})")

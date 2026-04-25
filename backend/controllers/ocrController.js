@@ -100,7 +100,6 @@ function getResultLeft(result) {
   if (!bbox.length) return Number.MAX_SAFE_INTEGER;
   return Math.min(...bbox.map(point => Array.isArray(point) ? point[0] : Number.MAX_SAFE_INTEGER));
 }
-
 function combineOCRResults(results, className) {
   if (!results.length) {
     return { text: '', confidence: 0 };
@@ -111,7 +110,14 @@ function combineOCRResults(results, className) {
 
   if (className === 'vin') {
     const text = ordered
-      .map(item => (item.text || '').toUpperCase().replace(/[^A-Z0-9]/g, ''))
+      .map(item => (item.text || '').toUpperCase()
+        .replace(/,/g, 'V')
+        .replace(/\|/g, 'Y')
+        .replace(/\(/g, 'C')
+        .replace(/\)/g, '')
+        .replace(/\./g, '')
+        .replace(/[^A-Z0-9]/g, '')
+      )
       .join('');
     return { text, confidence };
   }
@@ -249,7 +255,7 @@ async function processDetection(imageBuffer, box, className, imageWidth, imageHe
     });
 
     if (className === 'plate') {
-      const padding = 15;
+      const padding = 20;
 
       x = Math.max(0, x - padding);
       y = Math.max(0, y - padding);
@@ -322,31 +328,66 @@ async function processDetection(imageBuffer, box, className, imageWidth, imageHe
     }
 
     if (className === 'vin') {
-      const [vinSoft, vinHard] = await Promise.all([
-        preprocessForOCR(cropped, {
-          width: 700,
-          height: 140,
-          thresholdValue: null,
-          sharpen: false
-        }),
-        preprocessForOCR(cropped, {
-          width: 700,
-          height: 140,
-          thresholdValue: 170
-        })
-      ]);
+  const [vinSoft, vinHard, vinInverted, vinInvertedHard] = await Promise.all([
+    // Variant 1: normalize + contrast boost, no threshold
+    sharp(cropped)
+      .grayscale()
+      .normalize()
+      .linear(1.8, -40)
+      .sharpen({ sigma: 1.2 })
+      .resize(800, 160, { fit: 'fill' })
+      .jpeg({ quality: 95 })
+      .toBuffer(),
 
-      const vinOCR = await runOCRVariants([vinSoft, vinHard], ['generic', 'vin'], 'vin');
+    // Variant 2: aggressive contrast + threshold
+    sharp(cropped)
+      .grayscale()
+      .normalize()
+      .linear(2.0, -60)
+      .sharpen({ sigma: 1.0 })
+      .resize(800, 160, { fit: 'fill' })
+      .threshold(120)
+      .jpeg({ quality: 95 })
+      .toBuffer(),
 
-      console.log(`EasyOCR ${className}: "${vinOCR.text}"`);
+    // Variant 3: inverted colors, soft
+    sharp(cropped)
+      .grayscale()
+      .normalize()
+      .linear(1.8, -40)
+      .negate()
+      .sharpen({ sigma: 1.2 })
+      .resize(800, 160, { fit: 'fill' })
+      .jpeg({ quality: 95 })
+      .toBuffer(),
 
-      return {
-        class: className,
-        text: vinOCR.text,
-        confidence: box.confidence,
-        ocrConfidence: vinOCR.confidence
-      };
-    }
+    // Variant 4: inverted colors, hard threshold
+    sharp(cropped)
+      .grayscale()
+      .normalize()
+      .linear(2.0, -60)
+      .negate()
+      .threshold(120)
+      .resize(800, 160, { fit: 'fill' })
+      .jpeg({ quality: 95 })
+      .toBuffer(),
+  ]);
+
+  const vinOCR = await runOCRVariants(
+    [vinSoft, vinHard, vinInverted, vinInvertedHard],
+    ['generic', 'vin'],
+    'vin'
+  );
+
+  console.log(`EasyOCR ${className}: "${vinOCR.text}"`);
+
+  return {
+    class: className,
+    text: vinOCR.text,
+    confidence: box.confidence,
+    ocrConfidence: vinOCR.confidence
+  };
+}
 
     return {
       class: className,
@@ -396,8 +437,19 @@ function cleanPlateText(text) {
 function cleanVinText(text) {
   let cleaned = text
     .toUpperCase()
+    .replace(/,/g, 'V')
+    .replace(/\|/g, 'Y')
+    .replace(/\(/g, 'C')
+    .replace(/\)/g, '')
+    .replace(/\./g, '')
     .replace(/[^A-Z0-9]/g, '')
     .trim();
+
+  // VIN standard forbids I, O, Q
+  cleaned = cleaned
+    .replace(/O/g, '0')
+    .replace(/Q/g, '0');
+  // Note: do NOT replace I→1 blindly, Y is already handled above
 
   if (cleaned.length > 17) {
     cleaned = cleaned.substring(0, 17);

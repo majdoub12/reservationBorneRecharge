@@ -1,0 +1,166 @@
+{
+    "input_path": "C:\\Users\\user2024\\Desktop\\projectCoception\\ocr_server\\temp\\immatriculation.jpg",
+    "page_index": null,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_textline_orientation": false
+    },
+    "dt_polys": [
+        [
+            [
+                46,
+                18
+            ],
+            [
+                315,
+                29
+            ],
+            [
+                312,
+                100
+            ],
+            [
+                43,
+                88
+            ]
+        ],
+        [
+            [
+                1038,
+                32
+            ],
+            [
+                1330,
+                37
+            ],
+            [
+                1328,
+                140
+            ],
+            [
+                1037,
+                135
+            ]
+        ],
+        [
+            [
+                488,
+                45
+            ],
+            [
+                864,
+                45
+            ],
+            [
+                864,
+                118
+            ],
+            [
+                488,
+                118
+            ]
+        ]
+    ],
+    "text_det_params": {
+        "limit_side_len": 64,
+        "limit_type": "min",
+        "thresh": 0.2,
+        "max_side_limit": 4000,
+        "box_thresh": 0.3,
+        "unclip_ratio": 1.0
+    },
+    "text_type": "general",
+    "textline_orientation_angles": [
+        -1,
+        -1,
+        -1
+    ],
+    "text_rec_score_thresh": 0.0,
+    "return_word_box": false,
+    "rec_texts": [
+        "218",
+        "6845",
+        ""
+    ],
+    "rec_scores": [
+        0.9986885190010071,
+        0.9863385558128357,
+        0.0
+    ],
+    "rec_polys": [
+        [
+            [
+                46,
+                18
+            ],
+            [
+                315,
+                29
+            ],
+            [
+                312,
+                100
+            ],
+            [
+                43,
+                88
+            ]
+        ],
+        [
+            [
+                1038,
+                32
+            ],
+            [
+                1330,
+                37
+            ],
+            [
+                1328,
+                140
+            ],
+            [
+                1037,
+                135
+            ]
+        ],
+        [
+            [
+                488,
+                45
+            ],
+            [
+                864,
+                45
+            ],
+            [
+                864,
+                118
+            ],
+            [
+                488,
+                118
+            ]
+        ]
+    ],
+    "rec_boxes": [
+        [
+            43,
+            18,
+            315,
+            100
+        ],
+        [
+            1037,
+            32,
+            1330,
+            140
+        ],
+        [
+            488,
+            45,
+            864,
+            118
+        ]
+    ]
+}
