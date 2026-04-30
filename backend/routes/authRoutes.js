@@ -25,6 +25,7 @@ router.post('/verify-foreign-otp', authController.verifyForeignOTP);
 router.get('/contacts/:vehicleId', authController.getContacts);
 router.post('/add-contact', authController.addContact);
 router.post('/delete-contact', authController.deleteContact);
+router.post('/update-contact', authController.updateContact);
 
 router.post('/ocr', ocrController.handleOCR);
 module.exports = router;

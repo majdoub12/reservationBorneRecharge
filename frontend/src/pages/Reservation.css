@@ -64,7 +64,7 @@
   flex-direction: column;
   gap: 24px;
   align-items: stretch;
-  width: min(1120px, calc(100% - 32px));
+  width: min(1360px, calc(100% - 32px));
   margin: 0 auto;
   padding: 8px 0 0;
 }
@@ -179,7 +179,7 @@
 
 .map-list-wrapper {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.85fr);
+  grid-template-columns: minmax(0, 1fr) 420px;
   gap: 18px;
   align-items: start;
 }

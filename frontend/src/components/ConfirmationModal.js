@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BadgeCheck, CalendarDays, Copy, Download, Printer, X } from 'lucide-react';
 import './styles/ConfirmationModal.css';
 
 const ConfirmationModal = ({ isOpen, reservation, onClose, onConfirm }) => {
@@ -84,95 +85,130 @@ const ConfirmationModal = ({ isOpen, reservation, onClose, onConfirm }) => {
         link.click();
     };
 
+    const reservationReference = String(reservation.id || '').substring(0, 8).toUpperCase();
+    const statusLabel = String(reservation.status || 'Pending')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
     return (
         <div className="confirmation-modal-overlay" onClick={onClose}>
             <div className="confirmation-modal" onClick={(e) => e.stopPropagation()}>
-                <button className="close-button" onClick={onClose}>x</button>
+                <button className="close-button" onClick={onClose} aria-label="Close confirmation modal">
+                    <X size={18} />
+                </button>
 
                 <div className="modal-header">
-                    <h2>Reservation confirmed</h2>
-                    <p className="confirmation-message">
-                        Your reservation has been created successfully.
-                    </p>
+                    <div className="modal-heading">
+                        <span className="modal-kicker">Reservation confirmed</span>
+                        <h2>Keep this QR ready at the station</h2>
+                        <p className="confirmation-message">
+                            Your reservation has been created successfully. Use the QR code below for a faster
+                            check-in.
+                        </p>
+                    </div>
+
+                    <div className="status-chip">
+                        <BadgeCheck size={16} />
+                        {statusLabel}
+                    </div>
                 </div>
 
                 <div className="modal-content">
-                    <div className="qr-code-section">
-                        <h3>Your QR code</h3>
-                        <p className="qr-instruction">
-                            Present this code at the station for a faster check-in.
-                        </p>
-                        {reservation.qrCode && (
-                            <div className="qr-code-container">
-                                <img
-                                    src={reservation.qrCode}
-                                    alt="Reservation QR code"
-                                    className="qr-code-image"
-                                />
+                    <section className="qr-summary">
+                        <div className="qr-code-section">
+                            <span className="section-label">QR code</span>
+                            <p className="qr-instruction">
+                                Present this code at the station when you arrive.
+                            </p>
+                            {reservation.qrCode && (
+                                <div className="qr-code-container">
+                                    <img
+                                        src={reservation.qrCode}
+                                        alt="Reservation QR code"
+                                        className="qr-code-image"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        <div className="reservation-details">
+                            <div className="section-header">
+                                <div>
+                                    <h3>Reservation snapshot</h3>
+                                    <p>Everything you need, grouped into one quick glance.</p>
+                                </div>
+                                <span className="reference-pill">{reservationReference || '--------'}</span>
                             </div>
-                        )}
-                    </div>
 
-                    <div className="reservation-details">
-                        <h3>Reservation details</h3>
-                        <div className="detail-item">
-                            <span className="detail-label">Reference:</span>
-                            <span className="detail-value">{String(reservation.id || '').substring(0, 8).toUpperCase()}</span>
-                        </div>
-                        <div className="detail-item">
-                            <span className="detail-label">Station:</span>
-                            <span className="detail-value">{reservation.stationName || '-'}</span>
-                        </div>
-                        <div className="detail-item">
-                            <span className="detail-label">Vehicle:</span>
-                            <span className="detail-value">{reservation.vehicleMatricule || '-'}</span>
-                        </div>
-                        <div className="detail-item">
-                            <span className="detail-label">Date & time:</span>
-                            <span className="detail-value">
-                                {formatReservationSlot(reservation.dateTime)}
-                            </span>
-                        </div>
-                        <div className="detail-item highlight">
-                            <span className="detail-label">Tariff:</span>
-                            <span className="detail-value">{reservation.tariff} TND</span>
-                        </div>
-                        <div className="detail-item">
-                            <span className="detail-label">Status:</span>
-                            <span className="detail-value status-pending">Pending</span>
-                        </div>
-                    </div>
+                            <div className="detail-grid">
+                                <div className="detail-item">
+                                    <span className="detail-label">Station</span>
+                                    <span className="detail-value">{reservation.stationName || '-'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <span className="detail-label">Vehicle</span>
+                                    <span className="detail-value">{reservation.vehicleMatricule || '-'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <span className="detail-label">Date & time</span>
+                                    <span className="detail-value">{formatReservationSlot(reservation.dateTime)}</span>
+                                </div>
+                                <div className="detail-item highlight">
+                                    <span className="detail-label">Tariff</span>
+                                    <span className="detail-value">{reservation.tariff} TND</span>
+                                </div>
+                                <div className="detail-item detail-item-wide">
+                                    <span className="detail-label">Status</span>
+                                    <span className="detail-value status-pending">{statusLabel}</span>
+                                </div>
+                            </div>
 
-                    <div className="action-buttons">
-                        <button
-                            className="btn btn-print"
-                            onClick={handlePrintQR}
-                            title="Print QR code"
-                        >
-                            Print
-                        </button>
-                        <button
-                            className="btn btn-download"
-                            onClick={handleDownloadQR}
-                            title="Download QR code"
-                        >
-                            Download
-                        </button>
-                        <button
-                            className={`btn btn-copy ${copying ? 'copied' : ''}`}
-                            onClick={handleCopyToClipboard}
-                        >
-                            {copying ? 'Copied!' : 'Copy'}
-                        </button>
-                    </div>
+                            <div className="reservation-note">
+                                <CalendarDays size={14} />
+                                Payment is processed at 75 percent battery charge.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="action-panel">
+                        <div className="action-panel-copy">
+                            <h4>Quick actions</h4>
+                            <p>Use the buttons below if you want a printed copy or a backup on your device.</p>
+                        </div>
+                        <div className="action-buttons">
+                            <button
+                                className="btn btn-print"
+                                onClick={handlePrintQR}
+                                title="Print QR code"
+                                disabled={!reservation.qrCode}
+                            >
+                                <Printer size={16} />
+                                Print
+                            </button>
+                            <button
+                                className="btn btn-download"
+                                onClick={handleDownloadQR}
+                                title="Download QR code"
+                                disabled={!reservation.qrCode}
+                            >
+                                <Download size={16} />
+                                Download
+                            </button>
+                            <button
+                                className={`btn btn-copy ${copying ? 'copied' : ''}`}
+                                onClick={handleCopyToClipboard}
+                            >
+                                <Copy size={16} />
+                                {copying ? 'Copied!' : 'Copy'}
+                            </button>
+                        </div>
+                    </section>
 
                     <div className="info-box">
-                        <h4>Important notes</h4>
+                        <h4>Good to know</h4>
                         <ul>
-                            <li>Present the QR code at the station at your reservation time.</li>
                             <li>Arrive 5 to 10 minutes early.</li>
+                            <li>Keep the QR code visible at check-in.</li>
                             <li>Payment is processed at 75 percent battery charge.</li>
-                            <li>Check reservation history for more details.</li>
                         </ul>
                     </div>
                 </div>

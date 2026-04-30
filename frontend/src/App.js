@@ -8,6 +8,7 @@ import ForeignAuth from './pages/authentication/ForeignAuth';
 import ForeignOTPVerification from './pages/authentication/ForeignOTPVerification';
 import Settings from './pages/Settings';
 import ChargingVisualizationPage from './pages/Chargingvisualizationpage';
+import ManageContactInfo from './pages/authentication/ManageContactInfo';
 
 // other pages will come later
 
@@ -63,6 +64,16 @@ function AnimatedRoutes() {
         <Route path="/verify-otp" element={<PageTransition><OTPVerification /></PageTransition>} />
         <Route path="/auth/foreign" element={<PageTransition><ForeignAuth /></PageTransition>} />
         <Route path="/verify-foreign-otp" element={<PageTransition><ForeignOTPVerification /></PageTransition>} />
+        <Route
+          path="/manage-contact-info"
+          element={
+            <PageTransition>
+              <ProtectedRoute redirectTo="/tunisian-auth" allowWithStateKey="vehicleId">
+                <ManageContactInfo />
+              </ProtectedRoute>
+            </PageTransition>
+          }
+        />
 
         <Route
           path="/reservation"

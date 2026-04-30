@@ -406,7 +406,16 @@ const TunisianAuth = () => {
                   Need to update contacts?{" "}
                   <button
                     type="button"
-                    onClick={() => navigate("/settings", { state: { vehicleId } })}
+                    onClick={() =>
+                      navigate("/manage-contact-info", {
+                        state: {
+                          vehicleId,
+                          plate: immatricul,
+                          vin,
+                          step: 2,
+                        },
+                      })
+                    }
                     className="font-medium text-primary underline decoration-primary/40 underline-offset-2 transition-colors hover:decoration-primary"
                   >
                     Manage contact info

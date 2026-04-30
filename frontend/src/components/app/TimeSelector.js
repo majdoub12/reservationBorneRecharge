@@ -57,9 +57,12 @@ const TimeSlotSelector = ({ selectedStation, onSlotSelected, loading }) => {
         if (!cancelled) {
           setAvailableBornes([]);
           setSelectedBorneId("");
+          const message = fetchError?.message || "";
           setBornesError(
-            fetchError?.message?.includes("opening hours")
+            message.includes("opening hours")
               ? "This station is closed at the selected time. Please choose another time."
+              : message.includes("past")
+                ? "This time is already in the past. Please choose a later time."
               : "No borne available at this time. Please choose another time."
           );
           console.error(fetchError);

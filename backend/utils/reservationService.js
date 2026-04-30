@@ -23,6 +23,8 @@ const STATUS_TO_PROGRESS = {
 
 const ACTIVE_RESERVATION_STATUSES = ['pending', 'charging_25', 'charging_50', 'charging_75', 'completed'];
 const EXPIRED_PENDING_STATUS = 'missed';
+const CHARGING_GRACE_MINUTES = 15;
+const DEFAULT_TIME_ZONE = 'Africa/Tunis';
 let reservationsBorneIdColumnPromise = null;
 let stationHoursColumnsPromise = null;
 const KNOWN_STATION_COORDINATE_FIXES = {
@@ -201,12 +203,97 @@ const toNumber = (value, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const parseDateParts = (date) => {
+    if (!date) {
+        return null;
+    }
+
+    if (date instanceof Date) {
+        return {
+            year: date.getFullYear(),
+            month: date.getMonth() + 1,
+            day: date.getDate()
+        };
+    }
+
+    const [year, month, day] = String(date).substring(0, 10).split('-').map(Number);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+        return null;
+    }
+
+    return { year, month, day };
+};
+
+const parseTimeParts = (time) => {
+    if (!time) {
+        return null;
+    }
+
+    const normalized = String(time).substring(0, 8);
+    const [hours, minutes, seconds = 0] = normalized.split(':').map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+        return null;
+    }
+
+    return { hours, minutes, seconds };
+};
+
+const buildLocalDateTime = (date, time) => {
+    const dateParts = parseDateParts(date);
+    const timeParts = parseTimeParts(time);
+
+    if (!dateParts || !timeParts) {
+        return null;
+    }
+
+    return new Date(Date.UTC(
+        dateParts.year,
+        dateParts.month - 1,
+        dateParts.day,
+        timeParts.hours,
+        timeParts.minutes,
+        timeParts.seconds
+    ));
+};
+
+const getCurrentDateTimeInTimeZone = (timeZone = DEFAULT_TIME_ZONE) => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+    }).formatToParts(new Date()).reduce((acc, part) => {
+        if (part.type !== 'literal') {
+            acc[part.type] = part.value;
+        }
+        return acc;
+    }, {});
+
+    const year = Number(parts.year);
+    const month = Number(parts.month);
+    const day = Number(parts.day);
+    const hours = Number(parts.hour);
+    const minutes = Number(parts.minute);
+    const seconds = Number(parts.second);
+
+    if (![year, month, day, hours, minutes, seconds].every(Number.isFinite)) {
+        return new Date();
+    }
+
+    return new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
+};
+
 const getDateTimeFromParts = (date, time) => {
-    const timeValue = typeof time === 'string' ? time.substring(0, 8) : `${time}`.substring(0, 8);
-    return new Date(`${date}T${timeValue}`);
+    return buildLocalDateTime(date, time);
 };
 
 const addHours = (date, hours) => new Date(date.getTime() + toNumber(hours, 2) * 60 * 60 * 1000);
+
+const addMinutes = (date, minutes) => new Date(date.getTime() + toNumber(minutes, 0) * 60 * 1000);
 
 const isReservationWindowActiveAt = (reservation, slotDateTime) => {
     const reservationStart = getDateTimeFromParts(reservation.date_reserve, reservation.heur_reserve);
@@ -318,17 +405,34 @@ const getAvailableBornesByStationAndDateTime = async (stationId, date, time) => 
 };
 
 const parseReservationDateTime = (date_reserve, heur_reserve) => {
-    const timeValue =
-        typeof heur_reserve === 'string'
-            ? heur_reserve.substring(0, 8)
-            : heur_reserve.toString().substring(0, 8);
-
-    return new Date(`${date_reserve}T${timeValue}`);
+    return buildLocalDateTime(date_reserve, heur_reserve);
 };
 
 const isReservationInPast = (date_reserve, heur_reserve) => {
     const reservationDateTime = parseReservationDateTime(date_reserve, heur_reserve);
-    return Number.isNaN(reservationDateTime.getTime()) || reservationDateTime < new Date();
+    if (!reservationDateTime || Number.isNaN(reservationDateTime.getTime())) {
+        return true;
+    }
+
+    return reservationDateTime < getCurrentDateTimeInTimeZone();
+};
+
+const getReservationGraceEnd = (date_reserve, heur_reserve) => {
+    const reservationDateTime = parseReservationDateTime(date_reserve, heur_reserve);
+    if (!reservationDateTime || Number.isNaN(reservationDateTime.getTime())) {
+        return null;
+    }
+
+    return addMinutes(reservationDateTime, CHARGING_GRACE_MINUTES);
+};
+
+const isReservationPastChargingGrace = (date_reserve, heur_reserve) => {
+    const graceEnd = getReservationGraceEnd(date_reserve, heur_reserve);
+    if (!graceEnd) {
+        return true;
+    }
+
+    return graceEnd < getCurrentDateTimeInTimeZone();
 };
 
 const cleanupExpiredPendingReservations = async () => {
@@ -337,10 +441,9 @@ const cleanupExpiredPendingReservations = async () => {
             `UPDATE reservations
              SET charging_status = $1
              WHERE charging_status = 'pending'
-               AND to_timestamp(
-                    date_reserve::text || ' ' || heur_reserve::text,
-                    'YYYY-MM-DD HH24:MI:SS'
-               ) < NOW()
+               AND (((date_reserve::text || ' ' || heur_reserve::text)::timestamp)
+                   + INTERVAL '${CHARGING_GRACE_MINUTES} minutes')
+                   < (CURRENT_TIMESTAMP AT TIME ZONE 'Africa/Tunis')
              RETURNING id`,
             [EXPIRED_PENDING_STATUS]
         );
@@ -353,10 +456,13 @@ const cleanupExpiredPendingReservations = async () => {
 };
 
 const finalizeExpiredPendingRows = async (rows) => {
-    const now = new Date();
+    const now = getCurrentDateTimeInTimeZone();
     const expiredIds = rows
         .filter((row) => row.charging_status === 'pending')
-        .filter((row) => parseReservationDateTime(row.date_reserve, row.heur_reserve) < now)
+        .filter((row) => {
+            const graceEnd = getReservationGraceEnd(row.date_reserve, row.heur_reserve);
+            return graceEnd ? graceEnd < now : true;
+        })
         .map((row) => row.id);
 
     if (expiredIds.length > 0) {
@@ -510,13 +616,16 @@ const getSlotsByStationAndDate = async (stationId, date) => {
         if (context.bornes.length === 0) return [];
 
         const dynamicSlots = [];
-        const baseDate = new Date(`${date}T08:00:00`);
+        const baseDate = getDateTimeFromParts(date, '08:00:00');
+        if (!baseDate) {
+            return [];
+        }
 
         for (let i = 0; i < 46; i++) {
             const slotTime = new Date(baseDate.getTime() + i * 30 * 60000);
             
-            const hours = String(slotTime.getHours()).padStart(2, '0');
-            const minutes = String(slotTime.getMinutes()).padStart(2, '0');
+            const hours = String(slotTime.getUTCHours()).padStart(2, '0');
+            const minutes = String(slotTime.getUTCMinutes()).padStart(2, '0');
             const timeStr = `${hours}:${minutes}`;
 
             const isPastSlot = isReservationInPast(date, `${timeStr}:00`);
@@ -825,8 +934,24 @@ const getInvoicesByCarId = async (carId) => {
  */
 const cancelReservation = async (reservationId) => {
     try {
-        await cleanupExpiredPendingReservations();
-        const existingReservation = await getReservationById(reservationId);
+        const result = await pool.query(
+            `SELECT r.*, r.charging_status AS status,
+                CASE r.charging_status
+                    WHEN 'pending' THEN 0
+                    WHEN 'charging_25' THEN 25
+                    WHEN 'charging_50' THEN 50
+                    WHEN 'charging_75' THEN 75
+                    WHEN 'completed' THEN 75
+                    WHEN 'paid' THEN 100
+                    ELSE 0
+                END AS charging_progress,
+                st.name as station_name
+             FROM reservations r
+             INNER JOIN stations st ON r.station_id = st.id
+             WHERE r.id = $1::uuid`,
+            [reservationId]
+        );
+        const existingReservation = normalizeStationCoordinates(result.rows[0]);
         if (!existingReservation) {
             throw new Error('NOT_FOUND: Reservation not found');
         }
@@ -835,12 +960,12 @@ const cancelReservation = async (reservationId) => {
             throw new Error('INVALID_STATUS: Only pending reservations can be cancelled');
         }
 
-        const result = await pool.query(
+        const deleteResult = await pool.query(
             'DELETE FROM reservations WHERE id = $1::uuid RETURNING *',
             [reservationId]
         );
 
-        return result.rows[0];
+        return deleteResult.rows[0];
     } catch (error) {
         console.error('Error cancelling reservation:', error);
         throw error;
@@ -856,6 +981,19 @@ const updateReservationStatus = async (reservationId, newStatus) => {
         const existingReservation = await getReservationById(reservationId);
         if (!existingReservation) {
             throw new Error('NOT_FOUND: Reservation not found');
+        }
+
+        if (
+            existingReservation.status === 'pending' &&
+            isReservationPastChargingGrace(existingReservation.date_reserve, existingReservation.heur_reserve)
+        ) {
+            await pool.query(
+                `UPDATE reservations
+                 SET charging_status = $1
+                 WHERE id = $2::uuid AND charging_status = 'pending'`,
+                [EXPIRED_PENDING_STATUS, reservationId]
+            );
+            throw new Error('EXPIRED_RESERVATION: Reservation has already started or expired');
         }
 
         const allowedNextStatuses = STATUS_TRANSITIONS[existingReservation.status] || [];

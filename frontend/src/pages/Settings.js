@@ -5,7 +5,7 @@ import { COUNTRIES } from '../utils/constants';
 import AppSidebar from '../components/AppSidebar';
 import { getVehicleFromToken } from '../utils/authVehicle';
 import { applyTheme, getStoredTheme } from '../utils/theme';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 
 function Settings() {
   const navigate = useNavigate();
@@ -16,7 +16,6 @@ function Settings() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
   const [newContact, setNewContact] = useState({ type: 'email', value: '' });
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -78,8 +77,9 @@ function Settings() {
       });
 
       if (res.ok) {
-        setIsAdding(false);
         setNewContact({ type: 'email', value: '' });
+        setSelectedCountry(COUNTRIES[0]);
+        setShowDropdown(false);
         fetchContacts();
       } else {
         const data = await res.json();
@@ -162,86 +162,119 @@ function Settings() {
               </div>
             </div>
 
-            <div className="contacts-list">
-              {contacts.length === 0 ? (
-                <p className="no-contacts">No contacts found for this vehicle.</p>
-              ) : (
-                contacts.map((c, idx) => (
-                  <div key={idx} className="contact-card">
-                    <div className="contact-info">
-                      <span className={`contact-badge ${c.type}`}>
-                        {c.type === 'email' ? 'email' : 'whatsapp'}
-                      </span>
-                      <span className="contact-value">{c.value}</span>
-                    </div>
-                    <button
-                      className="btn-delete"
-                      onClick={() => handleDelete(c.type, c.value)}
-                      disabled={actionLoading}
-                    >
-                      <Trash2 size={15} />
-                      Delete
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {!isAdding ? (
-              <button className="btn-show-add" onClick={() => setIsAdding(true)}>
-                <PlusCircle size={16} />
-                + Add New Contact
-              </button>
-            ) : (
-              <div className="add-contact-form">
-                <h3>New Contact Info</h3>
-                <div className="type-toggle">
-                  <button
-                    className={newContact.type === 'email' ? 'active' : ''}
-                    onClick={() => setNewContact({ ...newContact, type: 'email' })}
-                  >
-                    Email
-                  </button>
-                  <button
-                    className={newContact.type === 'phone' ? 'active' : ''}
-                    onClick={() => setNewContact({ ...newContact, type: 'phone' })}
-                  >
-                    WhatsApp
-                  </button>
-                </div>
-
-                <div className="input-group">
-                  {newContact.type === 'phone' && (
-                    <div className="country-picker" onClick={() => setShowDropdown(!showDropdown)}>
-                      <span>{selectedCountry.flag}</span>
-                      {showDropdown && (
-                        <div className="country-menu">
-                          {COUNTRIES.map(c => (
-                            <div key={c.iso} onClick={() => { setSelectedCountry(c); setShowDropdown(false); }}>
-                              {c.flag} {c.code}
-                            </div>
-                          ))}
+            <div className="contacts-editor-grid">
+              <div className="contacts-pane">
+                <div className="contacts-list">
+                  {contacts.length === 0 ? (
+                    <p className="no-contacts">No contacts found for this vehicle.</p>
+                  ) : (
+                    contacts.map((c, idx) => (
+                      <div key={idx} className="contact-card">
+                        <div className="contact-info">
+                          <span className={`contact-badge ${c.type}`}>
+                            {c.type === 'email' ? 'email' : 'whatsapp'}
+                          </span>
+                          <span className="contact-value">{c.value}</span>
                         </div>
-                      )}
-                    </div>
+                        <button
+                          className="btn-delete"
+                          onClick={() => handleDelete(c.type, c.value)}
+                          disabled={actionLoading}
+                        >
+                          <Trash2 size={15} />
+                          Delete
+                        </button>
+                      </div>
+                    ))
                   )}
-                  <input
-                    placeholder={newContact.type === 'email' ? 'email@example.com' : '55 123 456'}
-                    value={newContact.value}
-                    onChange={(e) => setNewContact({ ...newContact, value: e.target.value })}
-                  />
-                </div>
-
-                <div className="form-actions">
-                  <button className="btn-add" onClick={handleAddContact} disabled={actionLoading}>
-                    {actionLoading ? 'Saving...' : 'Save Contact'}
-                  </button>
-                  <button className="btn-cancel" onClick={() => setIsAdding(false)}>Cancel</button>
                 </div>
               </div>
-            )}
 
-           
+              <div className="editor-pane">
+                <div className="add-contact-form">
+                  <div className="editor-head-row">
+                    <div>
+                      <h3>New Contact Info</h3>
+                      <p>Add a new email or WhatsApp number for OTP delivery.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-mini-reset"
+                      onClick={() => {
+                        setNewContact({ type: 'email', value: '' });
+                        setSelectedCountry(COUNTRIES[0]);
+                        setShowDropdown(false);
+                      }}
+                    >
+                      <X size={14} />
+                      Reset
+                    </button>
+                  </div>
+
+                  <div className="type-toggle">
+                    <button
+                      type="button"
+                      className={newContact.type === 'email' ? 'active' : ''}
+                      onClick={() => setNewContact({ ...newContact, type: 'email' })}
+                    >
+                      Email
+                    </button>
+                    <button
+                      type="button"
+                      className={newContact.type === 'phone' ? 'active' : ''}
+                      onClick={() => setNewContact({ ...newContact, type: 'phone' })}
+                    >
+                      WhatsApp
+                    </button>
+                  </div>
+
+                  <div className="input-group">
+                    {newContact.type === 'phone' && (
+                      <div className="country-picker" onClick={() => setShowDropdown(!showDropdown)}>
+                        <span>{selectedCountry.flag}</span>
+                        {showDropdown && (
+                          <div className="country-menu">
+                            {COUNTRIES.map((c) => (
+                              <div
+                                key={c.iso}
+                                onClick={() => {
+                                  setSelectedCountry(c);
+                                  setShowDropdown(false);
+                                }}
+                              >
+                                {c.flag} {c.code}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <input
+                      placeholder={newContact.type === 'email' ? 'email@example.com' : '55 123 456'}
+                      value={newContact.value}
+                      onChange={(e) => setNewContact({ ...newContact, value: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-actions">
+                    <button className="btn-add" onClick={handleAddContact} disabled={actionLoading}>
+                      {actionLoading ? 'Saving...' : 'Save Contact'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-cancel"
+                      onClick={() => {
+                        setNewContact({ type: 'email', value: '' });
+                        setSelectedCountry(COUNTRIES[0]);
+                        setShowDropdown(false);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
       </div>

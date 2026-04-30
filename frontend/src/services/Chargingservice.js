@@ -7,7 +7,7 @@ const STATUS_TO_PROGRESS = {
     charging_25: 25,
     charging_50: 50,
     charging_75: 75,
-    completed: 75
+    charging_0: 0
 };
 
 const parseResponse = async (response) => {
@@ -62,7 +62,7 @@ export const getAllCharging = async () => {
         charging_time_minutes: Math.round(Number(session.average_duration_hours || 2) * 60),
         charging_status_label: (() => {
             const dynamicProgress = computeDynamicProgress(session);
-            if (session.status === 'completed') return 'Payment required';
+            if (session.status === 'charging_75') return 'Payment required';
             if (dynamicProgress >= 75) return 'Charging - 75%';
             if (dynamicProgress >= 50) return 'Charging - 50%';
             if (dynamicProgress >= 25) return 'Charging - 25%';

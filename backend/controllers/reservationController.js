@@ -1,5 +1,5 @@
 ﻿const reservationService = require('../utils/reservationService');
-const CHARGING_STATUSES = ['charging_25', 'charging_50', 'charging_75', 'completed'];
+const CHARGING_STATUSES = ['charging_0', 'charging_25', 'charging_50', 'charging_75'];
 
 // =====================================================
 // STATIONS
@@ -169,7 +169,7 @@ const getAvailableBornes = async (req, res) => {
     } catch (error) {
         console.error('Error in getAvailableBornes:', error);
 
-        if (error.message.includes('OUT_OF_OPENING_HOURS')) {
+        if (error.code === 'OUT_OF_OPENING_HOURS' || error.message.includes('OUT_OF_OPENING_HOURS')) {
             return res.status(409).json({
                 success: false,
                 message: 'Selected time is outside the station opening hours',
@@ -178,7 +178,7 @@ const getAvailableBornes = async (req, res) => {
             });
         }
 
-        if (error.message.includes('PAST_SLOT')) {
+        if (error.code === 'PAST_SLOT' || error.message.includes('PAST_SLOT')) {
             return res.status(409).json({
                 success: false,
                 message: 'Selected time is in the past',
@@ -332,7 +332,7 @@ const createReservation = async (req, res) => {
             });
         }
 
-        if (error.message.includes('OUT_OF_OPENING_HOURS')) {
+        if (error.code === 'OUT_OF_OPENING_HOURS' || error.message.includes('OUT_OF_OPENING_HOURS')) {
             return res.status(409).json({
                 success: false,
                 message: 'Selected time is outside the station opening hours',
@@ -340,7 +340,7 @@ const createReservation = async (req, res) => {
             });
         }
 
-        if (error.message.includes('PAST_SLOT')) {
+        if (error.code === 'PAST_SLOT' || error.message.includes('PAST_SLOT')) {
             return res.status(409).json({
                 success: false,
                 message: 'Selected time is in the past',
@@ -504,6 +504,14 @@ const cancelReservation = async (req, res) => {
             });
         }
 
+        if (error.message.includes('EXPIRED_RESERVATION')) {
+            return res.status(409).json({
+                success: false,
+                message: 'This reservation has already started or expired and can no longer be cancelled',
+                error: error.message
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: 'Failed to cancel reservation',
@@ -561,6 +569,14 @@ const updateReservationStatus = async (req, res) => {
             });
         }
 
+        if (error.message.includes('EXPIRED_RESERVATION')) {
+            return res.status(409).json({
+                success: false,
+                message: 'This reservation has already started or expired and can no longer be updated',
+                error: error.message
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: 'Failed to update reservation status',
@@ -598,7 +614,7 @@ const payReservation = async (req, res) => {
         if (error.message.includes('INVALID_STATUS')) {
             return res.status(409).json({
                 success: false,
-                message: 'Only completed reservations can be paid',
+                message: 'Only reservations with charging_75 status can be paid',
                 error: error.message
             });
         }

@@ -83,7 +83,7 @@ const getReservationProgress = (reservation) => {
         charging_25: 25,
         charging_50: 50,
         charging_75: 75,
-        completed: 75,
+        charging_0: 0,
         paid: 100
     };
 
@@ -187,7 +187,7 @@ const ChargingVisualizationPage = () => {
     const activeOrPendingReservation = useMemo(() => {
         const sorted = [...reservations]
             .filter((reservation) =>
-                ['pending', 'charging_25', 'charging_50', 'charging_75', 'completed'].includes(getReservationStatus(reservation))
+                ['pending', 'charging_0', 'charging_25', 'charging_50', 'charging_75'].includes(getReservationStatus(reservation))
             )
             .sort((left, right) => getReservationTime(left) - getReservationTime(right));
 
@@ -232,7 +232,7 @@ const ChargingVisualizationPage = () => {
 
     const displayStatusLabel = simulationReservationId
         ? simulationLabel
-        : getReservationStatus(currentReservation) === 'completed'
+        : getReservationStatus(currentReservation) === 'charging_75'
             ? 'Payment required'
             : getReservationStatus(currentReservation) || 'No active session';
 
@@ -268,7 +268,7 @@ const ChargingVisualizationPage = () => {
             setSimulationReservationId(currentReservation.id);
             setSimulationProgress(getReservationProgress(currentReservation));
 
-            if (reservationStatus === 'completed') {
+            if (reservationStatus === 'charging_75') {
                 setSimulationLabel('Payment required');
                 setSimulationProgress(75);
                 await loadDashboard();
@@ -352,7 +352,7 @@ const ChargingVisualizationPage = () => {
             ? 'Payment required'
             : simulationReservationId
                 ? simulationLabel
-                : getReservationStatus(currentReservation) === 'completed'
+                : getReservationStatus(currentReservation) === 'charging_75'
                     ? 'Payment required'
                     : getReservationStatus(currentReservation) === 'pending'
                         ? 'Waiting to start'

@@ -5,7 +5,7 @@ import * as chargingService from '../services/Chargingservice';
 const BUCKETS = [25, 50, 75, 100];
 
 const getBucketForSession = (session) => {
-    if (session.status === 'completed') {
+    if (session.status === 'charging_75') {
         return 50;
     }
 

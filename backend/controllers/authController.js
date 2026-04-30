@@ -564,21 +564,34 @@ exports.addContact = async (req, res) => {
   }
 
   try {
-    const contactOwnerKey = getContactOwnerKey(await fetchVehicleIdentityById(vehicleId));
-
-    if (contact.type === 'email') {
-      await pool.query(
-        'INSERT INTO emails(owner_id, address) VALUES($1, $2)',
-        [contactOwnerKey, contact.value]
-      );
-    } else {
-      await pool.query(
-        'INSERT INTO telephones(owner_id, number) VALUES($1, $2)',
-        [contactOwnerKey, contact.value]
-      );
+    const vehicle = await fetchVehicleIdentityById(vehicleId);
+    if (!vehicle) {
+      return res.status(404).json({ message: 'Vehicle not found' });
     }
 
-    res.json({ message: 'Contact added successfully' });
+    const contactOwnerKey = getContactOwnerKey(vehicle);
+
+    if (contact.type === 'email') {
+      const result = await pool.query(
+        'INSERT INTO emails(owner_id, address) VALUES($1, $2) RETURNING id, address AS value',
+        [contactOwnerKey, contact.value]
+      );
+
+      return res.json({
+        message: 'Contact added successfully',
+        contact: { id: result.rows[0].id, type: 'email', value: result.rows[0].value }
+      });
+    } else {
+      const result = await pool.query(
+        'INSERT INTO telephones(owner_id, number) VALUES($1, $2) RETURNING id, number AS value',
+        [contactOwnerKey, contact.value]
+      );
+
+      return res.json({
+        message: 'Contact added successfully',
+        contact: { id: result.rows[0].id, type: 'phone', value: result.rows[0].value }
+      });
+    }
 
   } catch (err) {
     console.error(err);
@@ -588,32 +601,155 @@ exports.addContact = async (req, res) => {
 
 
 exports.deleteContact = async (req, res) => {
-  const { vehicleId, contact } = req.body;
+  const { vehicleId, contactId, contact } = req.body;
 
-  if (!vehicleId || !contact?.type || !contact?.value) {
+  if (!vehicleId || (!contactId && (!contact?.type || !contact?.value))) {
     return res.status(400).json({ message: 'Missing identifiers' });
   }
 
   try {
-    const contactOwnerKey = getContactOwnerKey(await fetchVehicleIdentityById(vehicleId));
+    const vehicle = await fetchVehicleIdentityById(vehicleId);
+    if (!vehicle) {
+      return res.status(404).json({ message: 'Vehicle not found' });
+    }
 
-    if (contact.type === 'email') {
-      await pool.query(
-        'DELETE FROM emails WHERE owner_id=$1 AND address=$2',
+    const contactOwnerKey = getContactOwnerKey(vehicle);
+    let deleteResult = null;
+
+    if (contactId) {
+      deleteResult = await pool.query(
+        'DELETE FROM emails WHERE id=$1 AND owner_id=$2 RETURNING id',
+        [contactId, contactOwnerKey]
+      );
+
+      if (deleteResult.rowCount === 0) {
+        deleteResult = await pool.query(
+          'DELETE FROM telephones WHERE id=$1 AND owner_id=$2 RETURNING id',
+          [contactId, contactOwnerKey]
+        );
+      }
+    } else if (contact.type === 'email') {
+      deleteResult = await pool.query(
+        'DELETE FROM emails WHERE owner_id=$1 AND address=$2 RETURNING id',
         [contactOwnerKey, contact.value]
       );
     } else {
-      await pool.query(
-        'DELETE FROM telephones WHERE owner_id=$1 AND number=$2',
+      deleteResult = await pool.query(
+        'DELETE FROM telephones WHERE owner_id=$1 AND number=$2 RETURNING id',
         [contactOwnerKey, contact.value]
       );
     }
 
-    res.json({ message: 'Contact deleted' });
+    if (!deleteResult || deleteResult.rowCount === 0) {
+      return res.status(404).json({ message: 'Contact not found' });
+    }
+
+    res.json({ message: 'Contact deleted', deleted: true });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error deleting contact' });
+  }
+};
+
+exports.updateContact = async (req, res) => {
+  const { vehicleId, contactId, currentType, contact } = req.body;
+
+  if (!vehicleId || !contactId || !currentType || !contact?.type || !contact?.value) {
+    return res.status(400).json({ message: 'Missing identifiers' });
+  }
+
+  try {
+    const vehicle = await fetchVehicleIdentityById(vehicleId);
+    if (!vehicle) {
+      return res.status(404).json({ message: 'Vehicle not found' });
+    }
+
+    const contactOwnerKey = getContactOwnerKey(vehicle);
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      let updatedContact = null;
+
+      if (currentType === contact.type) {
+        if (contact.type === 'email') {
+          const updateResult = await client.query(
+            'UPDATE emails SET address=$1 WHERE id=$2 AND owner_id=$3 RETURNING id, address AS value',
+            [contact.value, contactId, contactOwnerKey]
+          );
+
+          if (updateResult.rowCount === 0) {
+            throw new Error('Contact not found');
+          }
+
+          updatedContact = { id: updateResult.rows[0].id, type: 'email', value: updateResult.rows[0].value };
+        } else {
+          const updateResult = await client.query(
+            'UPDATE telephones SET number=$1 WHERE id=$2 AND owner_id=$3 RETURNING id, number AS value',
+            [contact.value, contactId, contactOwnerKey]
+          );
+
+          if (updateResult.rowCount === 0) {
+            throw new Error('Contact not found');
+          }
+
+          updatedContact = { id: updateResult.rows[0].id, type: 'phone', value: updateResult.rows[0].value };
+        }
+      } else {
+        let deleteResult = null;
+
+        if (currentType === 'email') {
+          deleteResult = await client.query(
+            'DELETE FROM emails WHERE id=$1 AND owner_id=$2 RETURNING id',
+            [contactId, contactOwnerKey]
+          );
+        } else {
+          deleteResult = await client.query(
+            'DELETE FROM telephones WHERE id=$1 AND owner_id=$2 RETURNING id',
+            [contactId, contactOwnerKey]
+          );
+        }
+
+        if (deleteResult.rowCount === 0) {
+          throw new Error('Contact not found');
+        }
+
+        if (contact.type === 'email') {
+          const insertResult = await client.query(
+            'INSERT INTO emails(owner_id, address) VALUES($1, $2) RETURNING id, address AS value',
+            [contactOwnerKey, contact.value]
+          );
+
+          updatedContact = { id: insertResult.rows[0].id, type: 'email', value: insertResult.rows[0].value };
+        } else {
+          const insertResult = await client.query(
+            'INSERT INTO telephones(owner_id, number) VALUES($1, $2) RETURNING id, number AS value',
+            [contactOwnerKey, contact.value]
+          );
+
+          updatedContact = { id: insertResult.rows[0].id, type: 'phone', value: insertResult.rows[0].value };
+        }
+      }
+
+      await client.query('COMMIT');
+      return res.json({
+        message: 'Contact updated successfully',
+        contact: updatedContact
+      });
+    } catch (updateError) {
+      await client.query('ROLLBACK');
+      throw updateError;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error(err);
+    if (err.message === 'Contact not found') {
+      return res.status(404).json({ message: 'Contact not found' });
+    }
+    res.status(500).json({ message: 'Error updating contact' });
   }
 };
 

@@ -6,7 +6,7 @@ import { calculateDistance, formatDistance, getBearing } from '../utils/Geoutils
 
 const DEFAULT_CENTER = [35.2975, 9.8744];
 const DEFAULT_ZOOM = 10;
-const DARK_TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const DARK_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 const LIGHT_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 const ROUTE_MODES = {
     driving: 'driving',
@@ -135,7 +135,6 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
     const [closestDistance, setClosestDistance] = useState(null);
     const [routeMode, setRouteMode] = useState(ROUTE_MODES.driving);
     const [routeSummary, setRouteSummary] = useState(null);
-    const [routeDirections, setRouteDirections] = useState([]);
     const [routeLoading, setRouteLoading] = useState(false);
     const [routeError, setRouteError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -166,7 +165,6 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
         }
 
         setRouteSummary(null);
-        setRouteDirections([]);
         setRouteError(null);
     }, []);
 
@@ -321,20 +319,8 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 destinationPoint.longitude
             );
 
-            const steps = route.legs?.flatMap((leg) => leg.steps || []) || [];
-            const directions = steps
-                .map((step, index) => {
-                    const instruction = formatRouteInstruction(step);
-                    return {
-                        id: `${requestId}-${index}`,
-                        instruction,
-                        distanceKm: step?.distance ? step.distance / 1000 : null,
-                        durationMin: step?.duration ? step.duration / 60 : null,
-                    };
-                })
-                .filter((step) => step.instruction);
+           
 
-            setRouteDirections(directions);
             setRouteSummary({
                 distanceKm: route.distance / 1000,
                 durationMin: route.duration / 60,
@@ -384,14 +370,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 destinationPoint.longitude
             );
 
-            setRouteDirections([
-                {
-                    id: `${requestId}-fallback`,
-                    instruction: 'No live route available. Showing a direct connection instead.',
-                    distanceKm: straightDistance,
-                    durationMin: null,
-                },
-            ]);
+            
             setRouteSummary({
                 distanceKm: straightDistance,
                 durationMin: null,
@@ -470,7 +449,6 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
         setUserLocation(null);
         setClosestStation(null);
         setClosestDistance(null);
-        setRouteDirections([]);
         clearRouteLayer();
         clearTemporaryMarkers();
 
@@ -676,14 +654,14 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                     <button
                         className="control-btn secondary-btn"
                         onClick={handleFitStations}
-                        title="Show all stations"
+                        aria-label="Show all stations"
                     >
                         Show all
                     </button>
                     <button
                         className="control-btn secondary-btn"
                         onClick={handleClearRoute}
-                        title="Clear route preview"
+                        aria-label="Clear route preview"
                         disabled={!routeOrigin && !closestStation}
                     >
                         Clear
@@ -691,7 +669,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                     <button
                         className="control-btn locate-btn"
                         onClick={getUserLocation}
-                        title="Use my current location"
+                        aria-label="Use my current location"
                     >
                         My location
                     </button>
@@ -716,7 +694,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                             type="submit"
                             className="search-btn"
                             disabled={searchLoading}
-                            title="Search address"
+                            aria-label="Search address"
                         >
                             {searchLoading ? 'Searching...' : 'Search'}
                         </button>
@@ -805,58 +783,9 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 </div>
             )}
 
-            {routeDirections.length > 0 && (
-                <div className="directions-panel">
-                    <div className="directions-header">
-                        <h3>Directions</h3>
-                        <span>
-                            {routeDirections.length} step{routeDirections.length > 1 ? 's' : ''}
-                        </span>
-                    </div>
-                    <ol className="directions-list">
-                        {routeDirections.slice(0, 10).map((step) => (
-                            <li key={step.id} className="direction-step">
-                                <span className="direction-instruction">{step.instruction}</span>
-                                <span className="direction-meta">
-                                    {step.distanceKm !== null ? `${formatDistance(step.distanceKm, 'km', 1)}` : ''}
-                                    {step.durationMin !== null ? `${step.distanceKm !== null ? ' - ' : ''}${Math.round(step.durationMin)} min` : ''}
-                                </span>
-                            </li>
-                        ))}
-                    </ol>
-                </div>
-            )}
+        
 
-            {closestStation && closestDistance && (
-                <div className="route-actions">
-                    <button
-                        className="select-station-btn"
-                        onClick={() => onSelectStation(closestStation)}
-                        title="Select this station"
-                    >
-                        Select nearest station
-                    </button>
-                </div>
-            )}
-
-            <div className="map-legend">
-                <div className="legend-item">
-                    <div className="legend-dot selected"></div>
-                    <span>Selected station</span>
-                </div>
-                <div className="legend-item">
-                    <div className="legend-dot available"></div>
-                    <span>Available station</span>
-                </div>
-                <div className="legend-item">
-                    <div className="legend-dot user-location"></div>
-                    <span>Origin</span>
-                </div>
-                <div className="legend-item">
-                    <div className="legend-line"></div>
-                    <span>Best route</span>
-                </div>
-            </div>
+    
         </div>
     );
 };
