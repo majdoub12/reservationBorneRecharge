@@ -6,7 +6,7 @@ const BUCKETS = [25, 50, 75, 100];
 
 const getBucketForSession = (session) => {
     if (session.status === 'charging_75') {
-        return 50;
+        return 75;
     }
 
     const progress = Number(session.charging_progress || 0);
@@ -21,7 +21,8 @@ const StationChargingTable = ({
     stationId = null,
     autoRefresh = true,
     refreshInterval = 5000,
-    vehicleMatricule = null
+    vehicleMatricule = null,
+    refreshTrigger = 0
 }) => {
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -45,7 +46,7 @@ const StationChargingTable = ({
 
     useEffect(() => {
         fetchSessions();
-    }, [stationId]);
+    }, [stationId, refreshTrigger]);
 
     useEffect(() => {
         if (!autoRefresh) {

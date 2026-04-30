@@ -115,6 +115,7 @@ const ChargingVisualizationPage = () => {
     const [simulationLabel, setSimulationLabel] = useState('Waiting for reservation');
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     useEffect(() => {
         const hydrateVehicle = async () => {
@@ -164,6 +165,7 @@ const ChargingVisualizationPage = () => {
                 setReservations(fallbackReservations || reservationData || []);
             }
             setChargingSessions(chargingData || []);
+            setRefreshTrigger(prev => prev + 1);
         } catch (loadError) {
             setError('Unable to load the charging dashboard right now.');
             console.error(loadError);
@@ -278,7 +280,7 @@ const ChargingVisualizationPage = () => {
 
             if (reservationStatus === 'charging_50') {
                 setSimulationLabel('Charging 75%');
-                await sleep(1200);
+                await sleep(4000);
                 await reservationService.updateReservationStatus(currentReservation.id, 'charging_75');
                 setSimulationProgress(75);
                 setSimulationLabel('Payment required');
@@ -301,13 +303,13 @@ const ChargingVisualizationPage = () => {
             setSimulationLabel('Charging 25%');
             await loadDashboard();
 
-            await sleep(1800);
+            await sleep(4000);
             await reservationService.updateReservationStatus(currentReservation.id, 'charging_50');
             setSimulationProgress(50);
             setSimulationLabel('Charging 50%');
             await loadDashboard();
 
-            await sleep(1800);
+            await sleep(4000);
             await reservationService.updateReservationStatus(currentReservation.id, 'charging_75');
             setSimulationProgress(75);
             setSimulationLabel('Payment required');
@@ -486,6 +488,7 @@ const ChargingVisualizationPage = () => {
                             refreshInterval={5000}
                             stationId={currentStationId}
                             vehicleMatricule={vehicle?.matricule || null}
+                            refreshTrigger={refreshTrigger}
                         />
                     </section>
                 </section>
