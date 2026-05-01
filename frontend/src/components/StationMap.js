@@ -135,6 +135,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
     const [closestDistance, setClosestDistance] = useState(null);
     const [routeMode, setRouteMode] = useState(ROUTE_MODES.driving);
     const [routeSummary, setRouteSummary] = useState(null);
+    const [routeDirections, setRouteDirections] = useState([]);
     const [routeLoading, setRouteLoading] = useState(false);
     const [routeError, setRouteError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -165,6 +166,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
         }
 
         setRouteSummary(null);
+        setRouteDirections([]);
         setRouteError(null);
     }, []);
 
@@ -319,8 +321,21 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 destinationPoint.longitude
             );
 
-           
+            const steps = route.legs?.flatMap((leg) => leg.steps || []) || [];
+            const directions = steps
+                .map((step, index) => {
+                    const instruction = formatRouteInstruction(step);
+                    return {
+                        id: `${requestId}-${index}`,
+                        instruction,
+                        distanceKm: step?.distance ? step.distance / 1000 : null,
+                        durationMin: step?.duration ? step.duration / 60 : null,
+                    };
+                })
+                .filter((step) => step.instruction);
 
+            setRouteDirections(directions);
+               
             setRouteSummary({
                 distanceKm: route.distance / 1000,
                 durationMin: route.duration / 60,
@@ -371,6 +386,15 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
             );
 
             
+              setRouteDirections([
+                {
+                    id: `${requestId}-fallback`,
+                    instruction: 'No live route available. Showing a direct connection instead.',
+                    distanceKm: straightDistance,
+                    durationMin: null,
+                },
+            ]);
+
             setRouteSummary({
                 distanceKm: straightDistance,
                 durationMin: null,
@@ -449,6 +473,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
         setUserLocation(null);
         setClosestStation(null);
         setClosestDistance(null);
+        setRouteDirections([]);
         clearRouteLayer();
         clearTemporaryMarkers();
 
@@ -655,6 +680,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                         className="control-btn secondary-btn"
                         onClick={handleFitStations}
                         aria-label="Show all stations"
+                        title="Show all stations"
                     >
                         Show all
                     </button>
@@ -663,6 +689,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                         onClick={handleClearRoute}
                         aria-label="Clear route preview"
                         disabled={!routeOrigin && !closestStation}
+                        title="Clear route preview"
                     >
                         Clear
                     </button>
@@ -670,6 +697,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                         className="control-btn locate-btn"
                         onClick={getUserLocation}
                         aria-label="Use my current location"
+                         title="Use my current location"
                     >
                         My location
                     </button>
@@ -689,6 +717,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                             }}
                             className="search-input"
                             disabled={searchLoading}
+                            title="Search address"
                         />
                         <button
                             type="submit"
@@ -776,12 +805,66 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 </div>
             )}
 
+              {routeDirections.length > 0 && (
+                <div className="directions-panel">
+                    <div className="directions-header">
+                        <h3>Directions</h3>
+                        <span>
+                            {routeDirections.length} step{routeDirections.length > 1 ? 's' : ''}
+                        </span>
+                    </div>
+                    <ol className="directions-list">
+                        {routeDirections.slice(0, 10).map((step) => (
+                            <li key={step.id} className="direction-step">
+                                <span className="direction-instruction">{step.instruction}</span>
+                                <span className="direction-meta">
+                                    {step.distanceKm !== null ? `${formatDistance(step.distanceKm, 'km', 1)}` : ''}
+                                    {step.durationMin !== null ? `${step.distanceKm !== null ? ' - ' : ''}${Math.round(step.durationMin)} min` : ''}
+                                </span>
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            )}
+
+            {closestStation && closestDistance && (
+                <div className="route-actions">
+                    <button
+                        className="select-station-btn"
+                        onClick={() => onSelectStation(closestStation)}
+                        title="Select this station"
+                    >
+                        Select nearest station
+                    </button>
+                </div>
+            )}
+
+            {/* <div className="map-legend">
+                <div className="legend-item">
+                    <div className="legend-dot selected"></div>
+                    <span>Selected station</span>
+                </div>
+                <div className="legend-item">
+                    <div className="legend-dot available"></div>
+                    <span>Available station</span>
+                </div>
+                <div className="legend-item">
+                    <div className="legend-dot user-location"></div>
+                    <span>Origin</span>
+                </div>
+                <div className="legend-item">
+                    <div className="legend-line"></div>
+                    <span>Best route</span>
+                </div>
+            </div> */}
+ 
             {routeError && (
                 <div className="route-notice route-notice-warning">
                     <span className="notice-icon">!</span>
                     <span>{routeError}</span>
                 </div>
             )}
+
 
         
 

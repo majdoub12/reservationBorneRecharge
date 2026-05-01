@@ -1,6 +1,6 @@
 .station-charging-table {
     display: grid;
-    gap: 18px;
+    gap: 14px;
     width: 100%;
 }
 
@@ -36,10 +36,10 @@
 .summary-chip {
     min-width: 132px;
     padding: 14px 16px;
-    border-radius: 18px;
+    border-radius: 14px;
     background: var(--surface-muted);
     border: 1px solid var(--surface-border);
-    box-shadow: var(--shadow-card);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
 }
 
 .summary-chip.highlight {
@@ -64,8 +64,9 @@
     border-radius: var(--radius-md);
     overflow: hidden;
     border: 1px solid var(--surface-border);
-    box-shadow: var(--shadow-card);
-    background: var(--surface-elevated);
+    box-shadow: inset 0 1px 1px hsla(0, 0%, 100%, 0.08), 0 18px 42px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(135deg, hsla(0, 0%, 100%, 0.1), hsla(0, 0%, 100%, 0.02));
+    backdrop-filter: blur(24px);
 }
 
 .stage-table {
@@ -74,11 +75,11 @@
 }
 
 .stage-table thead th {
-    padding: 16px 14px;
-    background: linear-gradient(135deg, rgba(12, 32, 44, 0.94), rgba(26, 71, 93, 0.94));
+    padding: 14px 14px;
+    background: linear-gradient(135deg, rgba(14, 27, 39, 0.95), rgba(20, 62, 84, 0.95));
     color: #f5fbff;
-    font-size: 0.82rem;
-    letter-spacing: 0.14em;
+    font-size: 0.76rem;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     text-align: left;
 }
@@ -86,7 +87,7 @@
 .stage-table tbody td {
     min-height: 140px;
     vertical-align: top;
-    padding: 16px 14px;
+    padding: 14px 14px;
     border-top: 1px solid var(--surface-border);
     background: var(--surface-muted);
 }
@@ -108,14 +109,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 12px;
+    padding: 8px 11px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid var(--surface-border);
     color: var(--text-primary);
     font-weight: 800;
     letter-spacing: 0.04em;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
 }
 
 .matricule-chip.is-self {
@@ -131,7 +132,7 @@
     gap: 12px;
     justify-content: space-between;
     padding: 16px 18px;
-    border-radius: 20px;
+    border-radius: 14px;
     background: var(--surface-muted);
     border: 1px solid var(--surface-border);
 }
@@ -156,18 +157,19 @@
 .btn-refresh {
     border: none;
     padding: 12px 18px;
-    border-radius: 14px;
+    border-radius: 10px;
     background: linear-gradient(135deg, var(--accent-strong), #28b8a6);
     color: white;
     font-weight: 800;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
     box-shadow: 0 16px 30px rgba(45, 225, 252, 0.18);
 }
 
 .btn-refresh:hover {
     transform: translateY(-1px);
     box-shadow: 0 20px 36px rgba(45, 225, 252, 0.24);
+    filter: saturate(1.05);
 }
 
 .loading-state,

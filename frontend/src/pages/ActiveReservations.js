@@ -153,6 +153,25 @@ const ActiveReservations = () => {
                 <AppSidebar />
 
                 <div className="active-reservations-shell">
+                    <section className="active-hero">
+                        <div>
+                            <span className="active-kicker">
+                                <Sparkles size={14} />
+                                Reservation Dashboard
+                            </span>
+                            <h1>Active Charging Reservations</h1>
+                            <p>
+                                Track your ongoing sessions, open station access quickly, and complete payment with a
+                                clean professional workflow.
+                            </p>
+                        </div>
+                        <div className="active-hero-actions">
+                            <button className="ghost-action" onClick={() => navigate('/reservation')}>
+                                New reservation
+                            </button>
+                        </div>
+                    </section>
+
                     <section className="active-summary-grid">
                         <article className="summary-card">
                             <span className="summary-label">Open reservations</span>
@@ -212,7 +231,7 @@ const ActiveReservations = () => {
                                                     {STATUS_LABELS[reservationStatus] || reservationStatus}
                                                 </span>
                                                 <h2>{reservation.station_name}</h2>
-                                    
+
                                             </div>
                                             <div className="reservation-price">{reservation.tariff} TND</div>
                                         </div>
@@ -246,7 +265,7 @@ const ActiveReservations = () => {
                                             </div>
                                         </div>
 
-                                        
+
 
                                         <div className="reservation-actions">
                                             <button className="primary-action" onClick={() => handleOpenCharging(reservation)}>

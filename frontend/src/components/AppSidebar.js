@@ -7,6 +7,7 @@ import {
   Sun,
   X,
   LogOut,
+  CarFront,
 } from 'lucide-react';
 import './styles/AppSidebar.css';
 import { getVehicleFromToken } from '../utils/authVehicle';
@@ -139,11 +140,17 @@ const AppSidebar = () => {
             className="app-navbar-icon-button"
             onClick={toggleTheme}
             title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
           >
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
 
-          {vehicle?.matricule && <div className="app-navbar-chip">{vehicle.matricule}</div>}
+          {vehicle?.matricule && (
+            <div className="app-navbar-chip" title={vehicle?.model ? `${vehicle.model} - ${vehicle.matricule}` : vehicle.matricule}>
+              <CarFront size={14} />
+              <span>{vehicle.matricule}</span>
+            </div>
+          )}
 
           <button type="button" className="app-navbar-logout" onClick={handleLogout}>
             <LogOut size={16} />
