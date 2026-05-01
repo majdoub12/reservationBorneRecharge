@@ -12,6 +12,7 @@ const ROUTE_MODES = {
     driving: 'driving',
     walking: 'walking',
 };
+const STEPS_PER_PAGE = 5;
 
 const createMarkerIcon = (isSelected = false, isUserLocation = false) => {
     if (isUserLocation) {
@@ -136,6 +137,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
     const [routeMode, setRouteMode] = useState(ROUTE_MODES.driving);
     const [routeSummary, setRouteSummary] = useState(null);
     const [routeDirections, setRouteDirections] = useState([]);
+    const [directionsPage, setDirectionsPage] = useState(0);
     const [routeLoading, setRouteLoading] = useState(false);
     const [routeError, setRouteError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -167,6 +169,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
 
         setRouteSummary(null);
         setRouteDirections([]);
+        setDirectionsPage(0);
         setRouteError(null);
     }, []);
 
@@ -335,6 +338,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 .filter((step) => step.instruction);
 
             setRouteDirections(directions);
+            setDirectionsPage(0);
                
             setRouteSummary({
                 distanceKm: route.distance / 1000,
@@ -394,6 +398,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                     durationMin: null,
                 },
             ]);
+            setDirectionsPage(0);
 
             setRouteSummary({
                 distanceKm: straightDistance,
@@ -474,6 +479,7 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
         setClosestStation(null);
         setClosestDistance(null);
         setRouteDirections([]);
+        setDirectionsPage(0);
         clearRouteLayer();
         clearTemporaryMarkers();
 
@@ -649,6 +655,11 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
         return getBearing(routeOrigin.lat, routeOrigin.lng, point.latitude, point.longitude);
     }, [closestStation, routeOrigin]);
 
+    const totalDirectionPages = Math.max(1, Math.ceil(routeDirections.length / STEPS_PER_PAGE));
+    const safeDirectionsPage = Math.min(directionsPage, totalDirectionPages - 1);
+    const currentStartIndex = safeDirectionsPage * STEPS_PER_PAGE;
+    const visibleDirections = routeDirections.slice(currentStartIndex, currentStartIndex + STEPS_PER_PAGE);
+
     return (
         <div className="station-map-container">
             <div className="station-map-header">
@@ -805,25 +816,57 @@ const StationMap = ({ stations, selectedStation, onSelectStation }) => {
                 </div>
             )}
 
-              {routeDirections.length > 0 && (
+            {routeDirections.length > 0 && (
                 <div className="directions-panel">
                     <div className="directions-header">
-                        <h3>Directions</h3>
-                        <span>
+                        <div>
+                            <h3>Directions</h3>
+                            <p className="directions-subtitle">Turn-by-turn route guidance</p>
+                        </div>
+                        <span className="directions-count">
                             {routeDirections.length} step{routeDirections.length > 1 ? 's' : ''}
                         </span>
                     </div>
                     <ol className="directions-list">
-                        {routeDirections.slice(0, 10).map((step) => (
+                        {visibleDirections.map((step, index) => (
                             <li key={step.id} className="direction-step">
-                                <span className="direction-instruction">{step.instruction}</span>
-                                <span className="direction-meta">
-                                    {step.distanceKm !== null ? `${formatDistance(step.distanceKm, 'km', 1)}` : ''}
-                                    {step.durationMin !== null ? `${step.distanceKm !== null ? ' - ' : ''}${Math.round(step.durationMin)} min` : ''}
+                                <span className="direction-step-index" aria-hidden="true">
+                                    {currentStartIndex + index + 1}
                                 </span>
+                                <div className="direction-copy">
+                                    <span className="direction-instruction">{step.instruction}</span>
+                                    <span className="direction-meta">
+                                        {step.distanceKm !== null ? `${formatDistance(step.distanceKm, 'km', 1)}` : ''}
+                                        {step.durationMin !== null ? `${step.distanceKm !== null ? ' - ' : ''}${Math.round(step.durationMin)} min` : ''}
+                                    </span>
+                                </div>
                             </li>
                         ))}
                     </ol>
+                    {routeDirections.length > STEPS_PER_PAGE && (
+                        <div className="directions-pagination">
+                            <button
+                                type="button"
+                                className="directions-nav-btn"
+                                onClick={() => setDirectionsPage((prev) => Math.max(0, prev - 1))}
+                                disabled={safeDirectionsPage === 0}
+                            >
+                                Back
+                            </button>
+                            <span className="directions-footnote">
+                                Showing {currentStartIndex + 1}-{Math.min(currentStartIndex + STEPS_PER_PAGE, routeDirections.length)}
+                                {' '}of {routeDirections.length}
+                            </span>
+                            <button
+                                type="button"
+                                className="directions-nav-btn"
+                                onClick={() => setDirectionsPage((prev) => Math.min(totalDirectionPages - 1, prev + 1))}
+                                disabled={safeDirectionsPage >= totalDirectionPages - 1}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
