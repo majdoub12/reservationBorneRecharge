@@ -87,7 +87,10 @@ const OTPVerification = () => {
         return;
       }
 
+      // AFTER
       localStorage.setItem("token", data.token);
+      if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
+      localStorage.setItem("vehicleId", String(vehicleId)); // ← add this line
       navigate("/reservation");
     } catch {
       setError("Cannot reach server. Please try again.");

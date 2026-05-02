@@ -122,7 +122,7 @@ def format_ocr_output(ocr_results: dict) -> dict:
 
             if len(numeric_entries) >= 2:
                 left_num, right_num = numeric_entries[0][1], numeric_entries[1][1]
-                output['immatriculation'] = f'{left_num}Tun{right_num}'
+                output['immatriculation'] = f'{left_num}TUN{right_num}'
 
     if chassis_path.exists():
         with chassis_path.open('r') as f:

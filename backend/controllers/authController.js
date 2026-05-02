@@ -314,9 +314,18 @@ exports.foreignAuth = async (req, res) => {
     }
 
     // 3. Save temporary foreign vehicle record (for approval flow)
+
+    // 3. Create owner record for foreign vehicle
+    const newOwnerResult = await pool.query(
+      'INSERT INTO owners (national_id) VALUES ($1) RETURNING national_id',
+      [email] // use email as national_id for foreign owners
+    );
+    const foreignOwnerId = newOwnerResult.rows[0].national_id;
+
+
     const newVehicleResult = await pool.query(
-      'INSERT INTO vehicles (immatricul, vin, is_foreign, is_temporary) VALUES ($1, $2, TRUE, TRUE) RETURNING *',
-      [normalizedMatricule, normalizedVin]
+      'INSERT INTO vehicles (immatricul, vin, is_foreign, is_temporary  , owner_id) VALUES ($1, $2, TRUE, TRUE,$3) RETURNING *',
+      [normalizedMatricule, normalizedVin , foreignOwnerId]
     );
     const tempVehicle = newVehicleResult.rows[0];
 
@@ -386,9 +395,16 @@ exports.foreignApprove = async (req, res) => {
 
     let vehicle;
     if (vehicleResult.rows.length === 0) {
+
+       const newOwnerResult = await pool.query(
+          'INSERT INTO owners (national_id) VALUES ($1) RETURNING national_id',
+          [email]
+        );
+        const foreignOwnerId = newOwnerResult.rows[0].national_id;
+
       const insertResult = await pool.query(
-        'INSERT INTO vehicles (immatricul, vin, is_foreign, is_temporary) VALUES ($1, $2, TRUE, FALSE) RETURNING *',
-        [normalizedMatricule, normalizedVin]
+        'INSERT INTO vehicles (immatricul, vin, is_foreign, is_temporary, owner_id) VALUES ($1, $2, TRUE, FALSE, $3) RETURNING *',
+    [normalizedMatricule, normalizedVin, foreignOwnerId]
       );
       vehicle = insertResult.rows[0];
     } else {
@@ -449,13 +465,13 @@ exports.foreignReject = async (req, res) => {
 };
 
 // ─── Verify OTP (Tunisian) ────────────────────────────────────────────────────
+// ─── Verify OTP (Tunisian) ────────────────────────────────────────────────────
 exports.verifyOTP = async (req, res) => {
   const { vehicleId, code } = req.body;
 
   try {
     const vehicle = await fetchVehicleIdentityById(vehicleId);
     const immatricul = vehicle?.immatricul || null;
-    const model = vehicle?.model || null;
 
     const result = await pool.query(
       `SELECT *, 
@@ -478,14 +494,44 @@ exports.verifyOTP = async (req, res) => {
 
     await pool.query('DELETE FROM otps WHERE id=$1', [otp.id]);
 
-    const token = generateToken({ vehicleId, immatricul, model });
+    // ── Get token from Keycloak ──────────────────────────────────────────────
+    const vin = vehicle?.vin || null;
 
-    res.json({ message: 'OTP verified successfully', token });
+    const params = new URLSearchParams({
+      grant_type: 'password',
+      client_id: 'vehicle-frontend',
+      username: immatricul.toLowerCase(), // Keycloak username is the immatricul in lowercase
+      password: vin,
+    });
+
+    const keycloakRes = await fetch(
+      'http://localhost:8080/realms/vehicle-app/protocol/openid-connect/token',
+      { method: 'POST', body: params }
+    );
+
+    // ✅ Read body ONCE only
+    const keycloakData = await keycloakRes.json();
+
+    if (!keycloakRes.ok) {
+      console.error('Keycloak error:', keycloakData);
+      return res.status(500).json({ 
+        message: 'OTP verified but authentication service failed. Please try again.'
+      });
+    }
+
+   res.json({
+      message: 'OTP verified successfully',
+      token: keycloakData.access_token,
+      refresh_token: keycloakData.refresh_token,
+      vehicleId: vehicleId, // ← add this
+    });
+    // ────────────────────────────────────────────────────────────────────────
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
+
 };
 
 // ─── Verify Foreign OTP ───────────────────────────────────────────────────────
@@ -494,20 +540,31 @@ exports.verifyForeignOTP = async (req, res) => {
   let targetVehicleId = vehicleId;
 
   try {
-    if (!targetVehicleId) {
-      if (!email) {
-        return res.status(400).json({ message: 'vehicleId or email is required' });
-      }
+    // ✅ Fixed: Find vehicle.id by email, not owner_id
+if (!targetVehicleId) {
+  if (!email) {
+    return res.status(400).json({ message: 'vehicleId or email is required' });
+  }
 
-      const emailRes = await pool.query(
-        'SELECT owner_id FROM emails WHERE address=$1 LIMIT 1',
-        [email]
-      );
-      if (emailRes.rows.length === 0) {
-        return res.status(404).json({ message: 'Vehicle not found for the given email' });
-      }
-      targetVehicleId = emailRes.rows[0].owner_id;
-    }
+  // Join emails → owners → vehicles to get the actual vehicle.id (INTEGER)
+  const vehicleRes = await pool.query(
+    `SELECT v.id 
+     FROM vehicles v
+     INNER JOIN owners o ON v.owner_id = o.national_id
+     INNER JOIN emails e ON o.national_id = e.owner_id
+     WHERE e.address = $1 AND v.is_foreign = TRUE
+     ORDER BY v.id DESC 
+     LIMIT 1`,
+    [email]
+  );
+
+  if (vehicleRes.rows.length === 0) {
+    return res.status(404).json({ message: 'No foreign vehicle found for this email' });
+  }
+  
+  targetVehicleId = vehicleRes.rows[0].id; // ← Now this is an INTEGER (vehicle.id)
+  console.log(`[verifyForeignOTP] Resolved vehicle_id=${targetVehicleId} for email=${email}`);
+}
 
     const otpResult = await pool.query(
       `SELECT *, 
@@ -547,7 +604,11 @@ exports.verifyForeignOTP = async (req, res) => {
       foreign: true
     });
 
-    res.json({ message: 'OTP verified successfully', token });
+    res.json({ 
+      message: 'OTP verified successfully', 
+      token,
+      vehicleId: targetVehicleId  // add this
+    });
 
   } catch (err) {
     console.error(err);
@@ -753,19 +814,34 @@ exports.updateContact = async (req, res) => {
   }
 };
 
+
 exports.getContacts = async (req, res) => {
   const { vehicleId } = req.params;
   if (!vehicleId) return res.status(400).json({ message: 'Vehicle ID required' });
 
   try {
-    const vehicle = await fetchVehicleIdentityById(vehicleId);
+    // If vehicleId is not a number, try to find by matricule
+    let vehicle;
+    if (isNaN(vehicleId)) {
+      return res.status(400).json({ message: 'Invalid vehicle ID' });
+    } else {
+      vehicle = await fetchVehicleIdentityById(vehicleId);
+    }
+
     if (!vehicle) {
       return res.status(404).json({ message: 'Vehicle not found' });
     }
+
     const contactOwnerKey = getContactOwnerKey(vehicle);
 
-    const emailResult = await pool.query('SELECT id, address AS value FROM emails WHERE owner_id=$1', [contactOwnerKey]);
-    const phoneResult = await pool.query('SELECT id, number AS value FROM telephones WHERE owner_id=$1', [contactOwnerKey]);
+    const emailResult = await pool.query(
+      'SELECT id, address AS value FROM emails WHERE owner_id=$1',
+      [contactOwnerKey]
+    );
+    const phoneResult = await pool.query(
+      'SELECT id, number AS value FROM telephones WHERE owner_id=$1',
+      [contactOwnerKey]
+    );
 
     const contacts = [
       ...emailResult.rows.map(r => ({ ...r, type: 'email' })),
@@ -774,7 +850,7 @@ exports.getContacts = async (req, res) => {
 
     res.json({
       contacts,
-      vehicleId,
+      vehicleId: vehicle.id,
       plate: vehicle.immatricul || null,
       vin: vehicle.vin || null,
       model: vehicle.model || null
@@ -782,5 +858,46 @@ exports.getContacts = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching contacts' });
+  }
+};
+
+
+
+// ─── Fetch vehicle by matricule (for Keycloak token validation) ───────────────
+async function fetchVehicleByImmatricul(immatricul) {
+  const hasModelColumn = await vehicleHasModelColumn();
+  const selectColumns = ['id', 'immatricul', 'vin', 'owner_id'];
+  if (hasModelColumn) selectColumns.push('model');
+
+  const result = await pool.query(
+    `SELECT ${selectColumns.join(', ')} FROM vehicles WHERE UPPER(immatricul)=$1 LIMIT 1`,
+    [immatricul.toUpperCase()]
+  );
+  return result.rows[0] || null;
+}
+
+
+// ─── Get current vehicle from Keycloak token ──────────────────────────────────
+exports.getMyVehicle = async (req, res) => {
+  try {
+    // preferred_username = matricule (set by Keycloak)
+    const immatricul = req.user.preferred_username?.toUpperCase();
+    if (!immatricul) {
+      return res.status(401).json({ message: 'Invalid token: no username' });
+    }
+
+    const vehicle = await fetchVehicleByImmatricul(immatricul);
+    if (!vehicle) {
+      return res.status(404).json({ message: 'Vehicle not found' });
+    }
+
+    res.json({
+      vehicleId: vehicle.id,
+      immatricul: vehicle.immatricul,
+      model: vehicle.model || null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 };

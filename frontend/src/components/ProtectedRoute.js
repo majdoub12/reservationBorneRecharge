@@ -7,13 +7,11 @@ const ProtectedRoute = ({ children, redirectTo = '/', allowWithStateKey = null }
   const hasValidSession = isTokenSessionValid();
   const hasAllowedState = allowWithStateKey && location.state?.[allowWithStateKey];
 
-  console.log(
-    'ProtectedRoute: checking access...',
-    hasValidSession ? 'Authenticated' : hasAllowedState ? 'Allowed by route state' : 'Denied'
-  );
-
   if (!hasValidSession && !hasAllowedState) {
+    // ✅ Clear all auth data including vehicleId
     localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('vehicleId');
     return <Navigate to={redirectTo} replace />;
   }
 

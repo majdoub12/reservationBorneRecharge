@@ -13,6 +13,7 @@ router.post('/send-otp', authController.sendOTP);
 // Foreign car — submit request to back-office
 router.post('/foreign', authController.foreignAuth);
 
+
 // Back-office approval/rejection (GET endpoints for email links)
 router.get('/foreign/approve', authController.foreignApprove);
 router.get('/foreign/reject', authController.foreignReject);
@@ -26,6 +27,10 @@ router.get('/contacts/:vehicleId', authController.getContacts);
 router.post('/add-contact', authController.addContact);
 router.post('/delete-contact', authController.deleteContact);
 router.post('/update-contact', authController.updateContact);
+
+
+// Add this line — protected route to get vehicle from token
+router.get('/me', authMiddleware, authController.getMyVehicle);
 
 router.post('/ocr', ocrController.handleOCR);
 module.exports = router;

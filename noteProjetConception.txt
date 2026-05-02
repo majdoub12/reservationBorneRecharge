@@ -1,0 +1,15 @@
+* ) run server :
+cd /d D:\keycloak-26.6.1\bin
+kc.bat start-dev --hostname-strict=false --http-enabled=true --spi-cors-default-allow-origins="*"
+
+* ) get fresh admin token : 
+curl -X POST "http://localhost:8080/realms/master/protocol/openid-connect/token" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&client_id=admin-cli&username=admin&password=admin"
+
+* ) run the server out of the application :
+curl -X POST "http://localhost:8080/realms/vehicle-app/protocol/openid-connect/token" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=password&client_id=vehicle-frontend&username=aa123bb&password=WVWZZZ1KZ4M156743"
+
+* ) when creating a new user try to fill all of the champs last name , first name , email to avoid the user not fully set error 
+
+
+* ) the console link : http://localhost:8080/admin/master/console/
+

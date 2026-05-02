@@ -85,6 +85,7 @@ const ForeignOTPVerification = () => {
       }
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem("vehicleId", String(data.vehicleId)); // add this
       navigate("/reservation");
     } catch {
       setError("Cannot reach server. Please try again.");
