@@ -8,6 +8,33 @@ An academic full-stack platform designed to orchestrate electric vehicle chargin
 
 ---
 
+## 🎬 Live Demo
+
+### 1️⃣ Tunisian Vehicle — Full Flow
+> Document upload → OCR reads VIN → Email/WhatsApp OTP → Map booking → Confirmed reservation
+
+<!-- Record: Tunisian login flow (~35 sec, 1280x720) -->
+<!-- HOW TO UPLOAD: Go to GitHub Issues → New Issue → drag & drop your .gif → copy the URL → replace the placeholder below -->
+![Tunisian Flow — coming soon](https://placehold.co/900x500/1a1a2e/00d4ff?text=Tunisian+Flow+Coming+Soon)
+
+---
+
+### 2️⃣ Foreign Vehicle — Approval Flow
+> Enter matricule + VIN → Back-office receives email → Admin approves → OTP sent → Map booking
+
+<!-- Record: Foreign vehicle + admin approval email (~30 sec, 1280x720) -->
+![Foreign Flow — coming soon](https://placehold.co/900x500/1a1a2e/7c3aed?text=Foreign+Flow+Coming+Soon)
+
+---
+
+### 3️⃣ OCR Document Scan
+> Upload registration card → OCR automatically extracts VIN
+
+<!-- Record: OCR scan close-up (~15 sec, 1280x720) -->
+![OCR Demo — coming soon](https://placehold.co/900x500/1a1a2e/00b86b?text=OCR+Demo+Coming+Soon)
+
+---
+
 ## 🎓 Academic Context
 
 This project represents the culmination of a **3-month engineering cycle** (covering requirements analysis, conception, interface design, database modeling, and security mapping). 
