@@ -13,25 +13,40 @@ An academic full-stack platform designed to orchestrate electric vehicle chargin
 ### 1️⃣ Tunisian Vehicle — Full Flow
 > Document upload → OCR reads VIN → Email/WhatsApp OTP → Map booking → Confirmed reservation
 
-<!-- Record: Tunisian login flow (~35 sec, 1280x720) -->
-<!-- HOW TO UPLOAD: Go to GitHub Issues → New Issue → drag & drop your .gif → copy the URL → replace the placeholder below -->
-![Tunisian Flow — coming soon](https://placehold.co/900x500/1a1a2e/00d4ff?text=Tunisian+Flow+Coming+Soon)
+<!--
+  HOW TO ADD YOUR VIDEO:
+  1. Go to https://github.com/majdoub12/reservationBorneRecharge/issues/new
+  2. Drag & drop your .mp4 file into the text box (max 100MB)
+  3. Copy the generated URL (looks like: https://github.com/majdoub12/reservationBorneRecharge/assets/XXXXX/your-video.mp4)
+  4. Paste it into the src attribute below, then delete this comment
+-->
+<video src="PASTE_TUNISIAN_FLOW_VIDEO_URL_HERE" controls width="900">
+  Tunisian Vehicle Flow — upgrade your browser to watch this video.
+</video>
 
 ---
 
 ### 2️⃣ Foreign Vehicle — Approval Flow
 > Enter matricule + VIN → Back-office receives email → Admin approves → OTP sent → Map booking
 
-<!-- Record: Foreign vehicle + admin approval email (~30 sec, 1280x720) -->
-![Foreign Flow — coming soon](https://placehold.co/900x500/1a1a2e/7c3aed?text=Foreign+Flow+Coming+Soon)
+<!--
+  HOW TO ADD YOUR VIDEO: same steps as above, drag & drop your .mp4 in a GitHub Issue
+-->
+<video src="PASTE_FOREIGN_FLOW_VIDEO_URL_HERE" controls width="900">
+  Foreign Vehicle Flow — upgrade your browser to watch this video.
+</video>
 
 ---
 
 ### 3️⃣ OCR Document Scan
 > Upload registration card → OCR automatically extracts VIN
 
-<!-- Record: OCR scan close-up (~15 sec, 1280x720) -->
-![OCR Demo — coming soon](https://placehold.co/900x500/1a1a2e/00b86b?text=OCR+Demo+Coming+Soon)
+<!--
+  HOW TO ADD YOUR VIDEO: same steps as above, drag & drop your .mp4 in a GitHub Issue
+-->
+<video src="PASTE_OCR_DEMO_VIDEO_URL_HERE" controls width="900">
+  OCR Document Scan — upgrade your browser to watch this video.
+</video>
 
 ---
 
@@ -49,25 +64,24 @@ The platform consists of a React frontend, a Node.js/Express API gateway, and a 
 
 ```mermaid
 graph TD
-    %% Define Nodes
-    Client["React Frontend<br>(Tailwind, Leaflet, Framer Motion)"]
-    API["Express Backend API<br>(Node.js)"]
-    FastAPI["FastAPI OCR Microservice<br>(Python, PaddleOCR, Roboflow)"]
-    Keycloak["Keycloak Server<br>(Identity Provider)"]
-    Supabase["Supabase DB<br>(PostgreSQL)"]
-    Twilio["Twilio API<br>(WhatsApp OTP)"]
-    Nodemailer["SMTP / Gmail<br>(Email OTP & Approvals)"]
+    Client["React Frontend - Tailwind, Leaflet, Framer Motion"]
+    API["Express Backend API - Node.js"]
+    FastAPI["FastAPI OCR Microservice - Python, PaddleOCR, Roboflow"]
+    Keycloak["Keycloak Server - Identity Provider"]
+    Supabase["Supabase DB - PostgreSQL"]
+    Twilio["Twilio API - WhatsApp OTP"]
+    Nodemailer["SMTP Gmail - Email OTP and Approvals"]
+    JWT["JWT Validator - HS256 Secret"]
 
-    %% Connections
-    Client -->|1a. Authenticate - Tunisian| Keycloak
-    Client -->|1b. Request Temporary Login - Foreign| API
-    Client -->|2. REST Requests - Keycloak Token / Custom JWT| API
-    API -->|3a. Validate Keycloak Token - RS256 JWKS| Keycloak
-    API -->|3b. Validate Custom JWT - HS256 Secret| API
-    API -->|4. Store/Fetch Data| Supabase
-    API -->|5. Forward Image for OCR| FastAPI
-    API -->|6. Send WhatsApp OTP| Twilio
-    API -->|7. Send Email OTP & Approvals| Nodemailer
+    Client -->|"1a. Authenticate Tunisian"| Keycloak
+    Client -->|"1b. Temporary Login Foreign"| API
+    Client -->|"2. REST Requests"| API
+    API -->|"3a. Validate Keycloak Token RS256"| Keycloak
+    API -->|"3b. Validate Custom JWT"| JWT
+    API -->|"4. Store and Fetch Data"| Supabase
+    API -->|"5. Forward Image for OCR"| FastAPI
+    API -->|"6. Send WhatsApp OTP"| Twilio
+    API -->|"7. Send Email OTP and Approvals"| Nodemailer
 ```
 
 ---
