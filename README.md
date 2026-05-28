@@ -26,7 +26,7 @@ An academic full-stack platform designed to orchestrate electric vehicle chargin
 ### 3️⃣ OCR Document Scan
 > Upload registration card → OCR automatically extracts VIN
 
-![OCR Document Scan](https://github.com/majdoub12/reservationBorneRecharge/assets/YOUR_USER_ID/ocr-demo.png)
+<img width="1903" height="1002" alt="Image" src="https://github.com/user-attachments/assets/543978d3-955a-40a3-be69-80bc9948c164" />
 
 ---
 ---
