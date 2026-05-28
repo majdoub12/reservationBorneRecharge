@@ -12,9 +12,7 @@ An academic full-stack platform designed to orchestrate electric vehicle chargin
 
 ### 1️⃣ Tunisian Vehicle — Full Flow
 > Document upload → OCR reads VIN → Email/WhatsApp OTP → Map booking → Confirmed reservation
-<p align="center" width="100%">
-<video src="https://github.com/user-attachments/assets/563d36e5-1c92-49e6-aa88-c873a20ddf1d" width="80%" controls></video>
-</p>
+<img width="1903" height="1002" alt="Image" src="https://github.com/user-attachments/assets/293dd4ce-c57d-4714-a92f-048f27a86ba3" />
 ![Tunisian Vehicle Flow](https://github.com/majdoub12/reservationBorneRecharge/assets/YOUR_USER_ID/tunisian-flow.png)
 
 ---
