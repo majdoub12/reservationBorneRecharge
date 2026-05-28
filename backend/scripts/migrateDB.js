@@ -45,6 +45,32 @@ async function runMigration() {
             console.log('-> model column already exists');
         }
 
+        console.log('-> Ensuring foreign owner national_id default exists...');
+        const ownerNationalIdColumnResult = await pool.query(`
+            SELECT data_type
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'owners'
+              AND column_name = 'national_id'
+            LIMIT 1
+        `);
+
+        if (ownerNationalIdColumnResult.rows.length > 0) {
+            const nationalIdType = ownerNationalIdColumnResult.rows[0].data_type;
+
+            if (nationalIdType === 'text' || nationalIdType === 'character varying') {
+                await pool.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
+                await pool.query(`
+                    ALTER TABLE owners
+                    ALTER COLUMN national_id SET DEFAULT ('FRG-' || gen_random_uuid()::text)
+                `);
+            } else {
+                console.log(`-> owners.national_id is ${nationalIdType}; expected text, skipping default setup.`);
+            }
+        } else {
+            console.log('-> owners.national_id column not found; skipping default setup.');
+        }
+
         console.log('-> Checking model constraint...');
         const modelConstraintResult = await pool.query(`
             SELECT conname

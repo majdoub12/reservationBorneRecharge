@@ -138,6 +138,14 @@ async function ensureForeignVehicleContacts(contactOwnerKey, email, phone) {
   }
 }
 
+async function createForeignOwner() {
+  const result = await pool.query(
+    'INSERT INTO owners DEFAULT VALUES RETURNING national_id'
+  );
+
+  return result.rows[0].national_id;
+}
+
 async function vehicleHasModelColumn() {
   if (vehicleModelColumnReady !== null) {
     return vehicleModelColumnReady;
@@ -315,12 +323,8 @@ exports.foreignAuth = async (req, res) => {
 
     // 3. Save temporary foreign vehicle record (for approval flow)
 
-    // 3. Create owner record for foreign vehicle
-    const newOwnerResult = await pool.query(
-      'INSERT INTO owners (national_id) VALUES ($1) RETURNING national_id',
-      [email] // use email as national_id for foreign owners
-    );
-    const foreignOwnerId = newOwnerResult.rows[0].national_id;
+    // 3. Create owner record for foreign vehicle. Supabase/Postgres generates national_id.
+    const foreignOwnerId = await createForeignOwner();
 
 
     const newVehicleResult = await pool.query(
@@ -396,11 +400,7 @@ exports.foreignApprove = async (req, res) => {
     let vehicle;
     if (vehicleResult.rows.length === 0) {
 
-       const newOwnerResult = await pool.query(
-          'INSERT INTO owners (national_id) VALUES ($1) RETURNING national_id',
-          [email]
-        );
-        const foreignOwnerId = newOwnerResult.rows[0].national_id;
+       const foreignOwnerId = await createForeignOwner();
 
       const insertResult = await pool.query(
         'INSERT INTO vehicles (immatricul, vin, is_foreign, is_temporary, owner_id) VALUES ($1, $2, TRUE, FALSE, $3) RETURNING *',
