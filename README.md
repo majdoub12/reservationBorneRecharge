@@ -12,42 +12,26 @@ An academic full-stack platform designed to orchestrate electric vehicle chargin
 
 ### 1️⃣ Tunisian Vehicle — Full Flow
 > Document upload → OCR reads VIN → Email/WhatsApp OTP → Map booking → Confirmed reservation
-
-<!--
-  HOW TO ADD YOUR VIDEO:
-  1. Go to https://github.com/majdoub12/reservationBorneRecharge/issues/new
-  2. Drag & drop your .mp4 file into the text box (max 100MB)
-  3. Copy the generated URL (looks like: https://github.com/majdoub12/reservationBorneRecharge/assets/XXXXX/your-video.mp4)
-  4. Paste it into the src attribute below, then delete this comment
--->
-<video src="PASTE_TUNISIAN_FLOW_VIDEO_URL_HERE" controls width="900">
-  Tunisian Vehicle Flow — upgrade your browser to watch this video.
-</video>
+<p align="center" width="100%">
+<video src="https://github.com/user-attachments/assets/563d36e5-1c92-49e6-aa88-c873a20ddf1d" width="80%" controls></video>
+</p>
+![Tunisian Vehicle Flow](https://github.com/majdoub12/reservationBorneRecharge/assets/YOUR_USER_ID/tunisian-flow.png)
 
 ---
 
 ### 2️⃣ Foreign Vehicle — Approval Flow
 > Enter matricule + VIN → Back-office receives email → Admin approves → OTP sent → Map booking
 
-<!--
-  HOW TO ADD YOUR VIDEO: same steps as above, drag & drop your .mp4 in a GitHub Issue
--->
-<video src="PASTE_FOREIGN_FLOW_VIDEO_URL_HERE" controls width="900">
-  Foreign Vehicle Flow — upgrade your browser to watch this video.
-</video>
+![Foreign Vehicle Flow](https://github.com/majdoub12/reservationBorneRecharge/assets/YOUR_USER_ID/foreign-flow.png)
 
 ---
 
 ### 3️⃣ OCR Document Scan
 > Upload registration card → OCR automatically extracts VIN
 
-<!--
-  HOW TO ADD YOUR VIDEO: same steps as above, drag & drop your .mp4 in a GitHub Issue
--->
-<video src="PASTE_OCR_DEMO_VIDEO_URL_HERE" controls width="900">
-  OCR Document Scan — upgrade your browser to watch this video.
-</video>
+![OCR Document Scan](https://github.com/majdoub12/reservationBorneRecharge/assets/YOUR_USER_ID/ocr-demo.png)
 
+---
 ---
 
 ## 🎓 Academic Context
