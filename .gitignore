@@ -5,6 +5,7 @@ node_modules/
 .env
 .env.local
 .env.*
+!.env.example
 
 # Build outputs
 build/
@@ -19,8 +20,10 @@ yarn-error.log*
 .DS_Store
 
 ocr_env/
-
+.venv/
+ocr_server/.venv/
+ocr_server/temp/
 ocr_server/app/__pycache__/
-ocr_server/app/temp/
+__pycache__/
 
-noteProjetConcepition.txt/
+noteProjetConception.txt
