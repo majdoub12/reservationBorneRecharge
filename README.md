@@ -19,8 +19,7 @@ An academic full-stack platform designed to orchestrate electric vehicle chargin
 
 ### 2️⃣ Foreign Vehicle — Approval Flow
 > Enter matricule + VIN → Back-office receives email → Admin approves → OTP sent → Map booking
-
-![Foreign Vehicle Flow](https://github.com/majdoub12/reservationBorneRecharge/assets/YOUR_USER_ID/foreign-flow.png)
+<img width="1903" height="1002" alt="Image" src="https://github.com/user-attachments/assets/10fefcd0-c0b1-4aa6-b0cb-b1b92a182cf9" />
 
 ---
 
