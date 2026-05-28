@@ -32,11 +32,11 @@ graph TD
     Nodemailer["SMTP / Gmail<br>(Email OTP & Approvals)"]
 
     %% Connections
-    Client -->|1a. Authenticate (Tunisian)| Keycloak
-    Client -->|1b. Request Temporary Login (Foreign)| API
-    Client -->|2. REST Requests (Keycloak Token / Custom JWT)| API
-    API -->|3a. Validate Keycloak Token (RS256 JWKS)| Keycloak
-    API -->|3b. Validate Custom JWT (HS256 Secret)| API
+    Client -->|1a. Authenticate - Tunisian| Keycloak
+    Client -->|1b. Request Temporary Login - Foreign| API
+    Client -->|2. REST Requests - Keycloak Token / Custom JWT| API
+    API -->|3a. Validate Keycloak Token - RS256 JWKS| Keycloak
+    API -->|3b. Validate Custom JWT - HS256 Secret| API
     API -->|4. Store/Fetch Data| Supabase
     API -->|5. Forward Image for OCR| FastAPI
     API -->|6. Send WhatsApp OTP| Twilio
