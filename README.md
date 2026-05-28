@@ -32,9 +32,11 @@ graph TD
     Nodemailer["SMTP / Gmail<br>(Email OTP & Approvals)"]
 
     %% Connections
-    Client -->|1. Authenticate| Keycloak
-    Client -->|2. REST Requests / Upload Documents| API
-    API -->|3. Validate Token| Keycloak
+    Client -->|1a. Authenticate (Tunisian)| Keycloak
+    Client -->|1b. Request Temporary Login (Foreign)| API
+    Client -->|2. REST Requests (Keycloak Token / Custom JWT)| API
+    API -->|3a. Validate Keycloak Token (RS256 JWKS)| Keycloak
+    API -->|3b. Validate Custom JWT (HS256 Secret)| API
     API -->|4. Store/Fetch Data| Supabase
     API -->|5. Forward Image for OCR| FastAPI
     API -->|6. Send WhatsApp OTP| Twilio
@@ -45,11 +47,11 @@ graph TD
 
 ## 🌟 Key Features
 
-*   **Dual Authentication Paths:**
-    *   **Tunisian Registered Vehicles:** Instant verification via License Plate & VIN, contact validation, OTP validation, and JWT session issuance linked to Keycloak.
-    *   **Foreign Vehicles:** Document upload workflow, back-office email approval link, and temporary OTP-based login.
+*   **Dual Authentication Paths (Dynamic Auth Middleware):**
+    *   **Tunisian Registered Vehicles:** Instant verification via License Plate & VIN, contact validation, OTP validation, and Keycloak-based OpenID Connect (OIDC) token authentication (validated via JWKS public keys).
+    *   **Foreign Vehicles:** Document upload workflow, back-office email approval link, and temporary OTP-based login issuing custom signed JWT session tokens (validated via local secret key).
 *   **OCR-Assisted Document Reading:** Microservice utilizing **PaddleOCR** and **Roboflow Inference SDK** to parse vehicle license plates and chassis numbers (VIN) directly from uploaded documents.
-*   **Security & Identity Access Management (IAM):** Managed using **Keycloak OIDC** token flows.
+*   **Security & Identity Access Management (IAM):** Managed dynamically using **Keycloak OIDC** token flows for local vehicles and local JWT fallback for foreign ones.
 *   **Multi-Channel OTP Delivery:** OTPs generated securely on the backend and transmitted using both **Nodemailer** (Email) and **Twilio** (WhatsApp).
 *   **Interactive Station Booking:** Dynamic map interface powered by **Leaflet** to find and book active charging points (*bornes*).
 *   **Live Charging Simulator:** Dashboard illustrating real-time charging status, battery health progression, and mock telemetry.
