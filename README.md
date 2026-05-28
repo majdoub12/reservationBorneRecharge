@@ -10,7 +10,7 @@ An academic full-stack platform designed to orchestrate electric vehicle chargin
 
 ## 🎓 Academic Context
 
-This project represents the culmination of a **3-month engineering cycle** (covering requirements analysis, conception, interface design, database modeling, and security mapping) with a rapid **2-week implementation and integration phase**. 
+This project represents the culmination of a **3-month engineering cycle** (covering requirements analysis, conception, interface design, database modeling, and security mapping). 
 
 It was developed under tight constraints, balancing heavy academic responsibilities including parallel courses, homework, exams, and other projects. The primary objective was to deliver a fully functional, end-to-end prototype showcasing modern software engineering practices, system architecture, and complex third-party integrations (Keycloak, Supabase, Twilio, Roboflow).
 
