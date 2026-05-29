@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-label="Charging station illustration">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#06101b" />
+      <stop offset="100%" stop-color="#13233a" />
+    </linearGradient>
+    <radialGradient id="aura" cx="52%" cy="42%" r="60%">
+      <stop offset="0%" stop-color="#3ee6ff" stop-opacity="0.32" />
+      <stop offset="100%" stop-color="#3ee6ff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)" />
+  <circle cx="840" cy="340" r="420" fill="url(#aura)" />
+  <rect x="120" y="780" width="1360" height="90" rx="45" fill="#0d1624" />
+  <rect x="720" y="250" width="150" height="430" rx="30" fill="#243a58" />
+  <rect x="650" y="210" width="290" height="75" rx="28" fill="#355275" />
+  <rect x="625" y="160" width="340" height="45" rx="22" fill="#3ee6ff" opacity="0.75" />
+  <rect x="350" y="650" width="660" height="110" rx="55" fill="#1b2c44" />
+  <rect x="410" y="600" width="540" height="120" rx="60" fill="#263e5d" />
+  <circle cx="500" cy="770" r="48" fill="#05070c" />
+  <circle cx="850" cy="770" r="48" fill="#05070c" />
+  <circle cx="500" cy="770" r="22" fill="#8aa4c8" />
+  <circle cx="850" cy="770" r="22" fill="#8aa4c8" />
+</svg>

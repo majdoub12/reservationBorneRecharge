@@ -1,0 +1,5 @@
+[2026-03-24T12:11:17.415Z] publicDeleteContact: {"vehicleId":1,"type":"email","id":1}
+[DEBUG] vehicle 1 total contacts: 3
+[DEBUG] Delete result.rowCount: 1
+[2026-03-24T12:13:31.406Z] publicDeleteContact: {"vehicleId":1,"type":"email"}
+[ERROR] Missing identifiers

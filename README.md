@@ -11,9 +11,11 @@ An academic full-stack platform designed to orchestrate electric vehicle chargin
 ## 🎬 Live Demo
 
 ### 1️⃣ Tunisian Vehicle — Full Flow
-> Document upload → OCR reads VIN → Email/WhatsApp OTP → Map booking → Confirmed reservation
+> Identify Vehicle (can be done with ocr) → Email/WhatsApp OTP → Map booking → Confirmed reservation
 <img width="1903" height="1002" alt="Image" src="https://github.com/user-attachments/assets/293dd4ce-c57d-4714-a92f-048f27a86ba3" />
 <img width="1903" height="1002" alt="Image" src="https://github.com/user-attachments/assets/80125bbf-1c05-4f29-9261-172bcdcbc34c" />
+https://github.com/user-attachments/assets/b978bb55-4520-4a2b-8602-aaf7025fc9fa
+
 
 ---
 
@@ -24,9 +26,10 @@ An academic full-stack platform designed to orchestrate electric vehicle chargin
 ---
 
 ### 3️⃣ OCR Document Scan
-> Upload registration card → OCR automatically extracts VIN
+> Upload registration card → OCR automatically extracts VIN and License Plate
 
 <img width="1903" height="1002" alt="Image" src="https://github.com/user-attachments/assets/543978d3-955a-40a3-be69-80bc9948c164" />
+
 
 ---
 ---

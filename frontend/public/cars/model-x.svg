@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Tesla Model X">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f9fbff"/>
+      <stop offset="100%" stop-color="#d2deec"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="700" rx="36" fill="#07111f"/>
+  <ellipse cx="600" cy="560" rx="370" ry="78" fill="#132f4b" opacity="0.92"/>
+  <path d="M144 424c66-94 164-149 294-166l95-62c78-30 221-30 309 0l96 62c82 17 151 72 206 166l-22 20H144z" fill="url(#body)"/>
+  <path d="M298 327c53-40 117-64 191-71 73-7 133-7 202 0 73 7 137 31 192 71H298z" fill="#101722"/>
+  <path d="M370 327c30-28 72-46 124-52 52-7 100-7 154 0 52 6 93 24 123 52H370z" fill="#071018"/>
+  <rect x="420" y="349" width="136" height="13" rx="6.5" fill="#7ff3ff"/>
+  <rect x="644" y="349" width="136" height="13" rx="6.5" fill="#7ff3ff"/>
+  <rect x="210" y="436" width="780" height="60" rx="30" fill="#151d28"/>
+  <circle cx="346" cy="499" r="74" fill="#0a1017"/>
+  <circle cx="346" cy="499" r="42" fill="#e5ebf2"/>
+  <circle cx="854" cy="499" r="74" fill="#0a1017"/>
+  <circle cx="854" cy="499" r="42" fill="#e5ebf2"/>
+  <text x="600" y="622" text-anchor="middle" fill="#d7f8ff" font-family="Arial, sans-serif" font-size="48" font-weight="700">MODEL X</text>
+</svg>

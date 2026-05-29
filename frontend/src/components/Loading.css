@@ -1,0 +1,117 @@
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  z-index: 9999;
+  overflow: hidden;
+}
+
+/* Reusing the ambient background elements from index.css logic */
+.loading-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(circle at center, black 32%, transparent 86%);
+  opacity: 0.2;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  z-index: 10;
+}
+
+.loading-spinner {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+
+.spinner-inner,
+.spinner-outer,
+.spinner-center {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 4px solid transparent;
+}
+
+.spinner-outer {
+  border-top-color: var(--accent);
+  animation: spin 2s linear infinite;
+}
+
+.spinner-inner {
+  inset: 15px;
+  border-bottom-color: var(--accent-strong);
+  animation: spin-reverse 1.5s linear infinite;
+  opacity: 0.7;
+}
+
+.spinner-center {
+  inset: 35px;
+  background: var(--accent-soft);
+  box-shadow: 0 0 20px var(--accent-soft);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.loading-text {
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin: 0;
+  animation: text-flicker 3s infinite;
+}
+
+.loading-progress-track {
+  width: 200px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.loading-progress-bar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: slide 2.5s ease-in-out infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.4; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+@keyframes slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes text-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+  52% { opacity: 0.9; }
+  54% { opacity: 0.6; }
+}
